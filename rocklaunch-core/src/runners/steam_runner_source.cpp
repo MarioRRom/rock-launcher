@@ -1,7 +1,6 @@
 #include "rocklaunch/core/runners/steam_runner_source.h"
 
 #include <cstdlib>
-#include <set>
 
 namespace rocklaunch
 {

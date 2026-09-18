@@ -1,6 +1,5 @@
 #include "rocklaunch/core/utils/ini_editor.h"
 
-#include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <utility>
