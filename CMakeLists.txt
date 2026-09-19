@@ -29,6 +29,7 @@ endif()
 
 add_subdirectory(rocklaunch-core)
 add_subdirectory(rocklaunch-cli)
+add_subdirectory(rocklaunch-gui)
 
 if (BUILD_TESTING)
     add_test(

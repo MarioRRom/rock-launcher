@@ -42,11 +42,14 @@ does the rest.
 ## Prerequisites
 
 **Build:** CMake, C++17 compiler, OpenSSL, zlib,
-[nlohmann/json](https://github.com/nlohmann/json) (fetched automatically).
+[nlohmann/json](https://github.com/nlohmann/json) (fetched automatically),
+Qt6 (`qt6-qtdeclarative-devel`, `qt6-qtshadertools-devel`).
 
 **Runtime:** `7z` ([p7zip](https://p7zip.sourceforge.net/)) —
 `sudo apt install p7zip-full` / `sudo pacman -S p7zip`.
-`curl` and `tar` — usually pre-installed on Linux.
+`curl` — usually pre-installed on Linux.
+Qt6 Quick runtime (`qt6-qtdeclarative` on Fedora,
+`qml6-module-qtquick` on Ubuntu/Debian).
 
 ## Building
 
