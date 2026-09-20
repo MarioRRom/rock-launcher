@@ -57,6 +57,6 @@ Rectangle {
     PlayButton {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        onClicked: { /* launch game */ }
+        onClicked: launchController.launch()
     }
 }

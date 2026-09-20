@@ -27,8 +27,8 @@ Rectangle {
     id: root
 
     property bool actived: false
-    property string currentProfile: "rocksmith2014remastered-1"
-    property var profiles: ["rocksmith2014remastered-1", "rocksmith2014remastered-2", "rocksmith2014remastered-3", "rocksmith2014remastered-4"]
+    property string currentProfile: profileModel.currentProfile
+    property var profiles: profileModel.profiles
 
     signal profileSelected(string profile)
     signal createProfile()
@@ -171,7 +171,7 @@ Rectangle {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            root.currentProfile = profileCard.modelData
+                            profileModel.currentProfile = profileCard.modelData
                             root.profileSelected(profileCard.modelData)
                             root.actived = false
                         }
@@ -196,7 +196,10 @@ Rectangle {
                 Layout.fillWidth: true
                 text: "Create new profile"
                 size: 35
-                onClicked: root.createProfile()
+                onClicked: {
+                    profileModel.createProfile()
+                    root.createProfile()
+                }
             }
         }
     }

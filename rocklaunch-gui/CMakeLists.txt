@@ -6,6 +6,10 @@ qt_policy(SET QTP0004 NEW)
 
 qt_add_executable(rocklaunch-gui
     src/main.cpp
+    src/game_profile_model.cpp
+    src/launch_controller.cpp
+    src/profile_model.cpp
+    src/runners/runner_model.cpp
 )
 
 qt_add_qml_module(rocklaunch-gui

@@ -48,7 +48,6 @@ Window {
 
     // Internal states
     property string currentPage: "launch"
-    property string currentGame: "rocksmith2014remastered"
 
 
     // Horizontal Layout
@@ -85,8 +84,8 @@ Window {
             TopBar {
                 Layout.fillWidth: true
                 Layout.preferredHeight: root.topbarWidth
-                currentGame: root.currentGame
-                onGameChanged: (game) => root.currentGame = game
+                currentGame: gameProfileModel.gameId
+                onGameChanged: (game) => gameProfileModel.gameId = game
                 visible: root.currentPage === "launch"
             }
 
