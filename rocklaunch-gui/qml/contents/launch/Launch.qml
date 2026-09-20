@@ -19,6 +19,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
+import RockLaunch.Gui
 
 
 Rectangle {
@@ -57,6 +58,6 @@ Rectangle {
     PlayButton {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        onClicked: launchController.launch()
+        onClicked: LaunchController.launch()
     }
 }

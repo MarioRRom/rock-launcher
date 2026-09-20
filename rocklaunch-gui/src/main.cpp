@@ -7,7 +7,6 @@
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
-#include <QQmlContext>
 
 int main(int argc, char *argv[])
 {
@@ -29,10 +28,11 @@ int main(int argc, char *argv[])
     launchController.SetConfigStore(&configStore);
     launchController.SetProfileModel(&profileModel);
 
+    qmlRegisterSingletonInstance("RockLaunch.Gui", 1, 0, "GameProfileModel", &gameProfileModel);
+    qmlRegisterSingletonInstance("RockLaunch.Gui", 1, 0, "ProfileModel", &profileModel);
+    qmlRegisterSingletonInstance("RockLaunch.Gui", 1, 0, "LaunchController", &launchController);
+
     QQmlApplicationEngine engine;
-    engine.rootContext()->setContextProperty("gameProfileModel", &gameProfileModel);
-    engine.rootContext()->setContextProperty("profileModel", &profileModel);
-    engine.rootContext()->setContextProperty("launchController", &launchController);
 
     QObject::connect(
         &engine,

@@ -22,13 +22,14 @@ import QtQuick.Layouts
 
 // Config
 import "../../components"
+import RockLaunch.Gui
 
 Rectangle {
     id: root
 
     property bool actived: false
-    property string currentProfile: profileModel.currentProfile
-    property var profiles: profileModel.profiles
+    property string currentProfile: ProfileModel.currentProfile
+    property var profiles: ProfileModel.profiles
 
     signal profileSelected(string profile)
     signal createProfile()
@@ -171,7 +172,7 @@ Rectangle {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            profileModel.currentProfile = profileCard.modelData
+                            ProfileModel.currentProfile = profileCard.modelData
                             root.profileSelected(profileCard.modelData)
                             root.actived = false
                         }
@@ -197,7 +198,7 @@ Rectangle {
                 text: "Create new profile"
                 size: 35
                 onClicked: {
-                    profileModel.createProfile()
+                    ProfileModel.createProfile()
                     root.createProfile()
                 }
             }

@@ -6,15 +6,21 @@ qt_policy(SET QTP0004 NEW)
 
 qt_add_executable(rocklaunch-gui
     src/main.cpp
-    src/game_profile_model.cpp
-    src/launch_controller.cpp
-    src/profile_model.cpp
     src/runners/runner_model.cpp
 )
+
+target_include_directories(rocklaunch-gui PRIVATE src)
 
 qt_add_qml_module(rocklaunch-gui
     URI RockLaunch.Gui
     VERSION 1.0
+    SOURCES
+        src/game_profile_model.h
+        src/game_profile_model.cpp
+        src/profile_model.h
+        src/profile_model.cpp
+        src/launch_controller.h
+        src/launch_controller.cpp
     QML_FILES
         qml/Main.qml
     QML_FILES

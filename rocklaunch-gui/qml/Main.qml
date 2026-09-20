@@ -22,9 +22,8 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 // Config
-import "components"
 import "layout"
-import "contents/launch"
+import RockLaunch.Gui
 
 Window {
     id: root
@@ -84,8 +83,8 @@ Window {
             TopBar {
                 Layout.fillWidth: true
                 Layout.preferredHeight: root.topbarWidth
-                currentGame: gameProfileModel.gameId
-                onGameChanged: (game) => gameProfileModel.gameId = game
+                currentGame: GameProfileModel.gameId
+                onGameChanged: (game) => GameProfileModel.gameId = game
                 visible: root.currentPage === "launch"
             }
 
