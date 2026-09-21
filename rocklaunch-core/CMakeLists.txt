@@ -1,8 +1,10 @@
 add_library(rocklaunch-core
     src/config_store.cpp
     src/launch.cpp
+    src/launch_session.cpp
     src/logger.cpp
     src/manual_source.cpp
+    src/profile_manager.cpp
     src/patches/cdlc_patch.cpp
     src/patches/direct_connect_patch.cpp
     src/patches/patch.cpp

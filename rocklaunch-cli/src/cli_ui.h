@@ -16,7 +16,6 @@ std::string HumanSize(uint64_t bytes);
 std::string RepoShortName(const std::string &repo);
 
 void PrintError(const std::string &message);
-void PrintWarning(const std::string &message);
 void PrintUsageError(const std::string &message,
                      const std::string &command,
                      const std::string &subcommand = "");

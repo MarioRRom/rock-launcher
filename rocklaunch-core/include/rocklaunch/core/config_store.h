@@ -47,6 +47,9 @@ public:
     fs::path ConfigDir() const;
     fs::path DataDir() const;
     fs::path ProfilePath(const std::string &profileId) const;
+    // True when profileId may be used to build a profile file name; the same
+    // charset rules ValidateProfileId enforces, without throwing.
+    bool ProfileIdValid(const std::string &profileId) const;
     bool ProfileExists(const std::string &profileId) const;
     std::vector<std::string> ListProfileIds() const;
     // Profile that already claims installDir, if any. Excludes excludedProfileId from the search.

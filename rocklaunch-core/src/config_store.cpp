@@ -201,7 +201,12 @@ bool ConfigStore::DeleteProfile(const std::string &profileId) const
 
     std::optional<ProfileConfig> profile;
     if (exists) {
-        profile = LoadProfile(profileId);
+        // Best-effort read for prefix cleanup; a corrupt profile must still be
+        // removable even when its JSON can no longer be parsed.
+        try {
+            profile = LoadProfile(profileId);
+        } catch (const std::exception &) {
+        }
     }
 
     bool removed = fs::remove(profilePath, error);
@@ -218,7 +223,7 @@ bool ConfigStore::DeleteProfile(const std::string &profileId) const
 
 void ConfigStore::RemovePrefixDir(const fs::path &prefixDir) const
 {
-    fs::path prefixesDir = DefaultDataDir() / "prefixes";
+    fs::path prefixesDir = m_dataDir / "prefixes";
     std::error_code error;
     if (!IsUnder(prefixDir, prefixesDir) || !fs::is_directory(prefixDir, error)) {
         return;
@@ -227,20 +232,29 @@ void ConfigStore::RemovePrefixDir(const fs::path &prefixDir) const
     fs::remove_all(prefixDir, error);
 }
 
-void ConfigStore::ValidateProfileId(const std::string &profileId) const
+bool ConfigStore::ProfileIdValid(const std::string &profileId) const
 {
     if (profileId.empty()) {
-        throw std::invalid_argument("A profile id is required");
+        return false;
     }
 
     for (char character : profileId) {
         bool isLetter = character >= 'a' && character <= 'z';
         bool isDigit = character >= '0' && character <= '9';
         if (!isLetter && !isDigit && character != '-' && character != '_') {
-            throw std::invalid_argument(
-                "Profile ids may contain only lowercase letters, numbers, hyphens, and "
-                "underscores");
+            return false;
         }
+    }
+
+    return true;
+}
+
+void ConfigStore::ValidateProfileId(const std::string &profileId) const
+{
+    if (!ProfileIdValid(profileId)) {
+        throw std::invalid_argument(
+            "Profile ids may contain only lowercase letters, numbers, hyphens, and "
+            "underscores");
     }
 }
 

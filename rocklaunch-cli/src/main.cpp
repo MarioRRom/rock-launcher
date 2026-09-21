@@ -2,8 +2,8 @@
 
 #include "rocklaunch/core/config_store.h"
 #include "rocklaunch/core/launch.h"
-#include "rocklaunch/core/manual_source.h"
 #include "rocklaunch/core/patches/patch_manager.h"
+#include "rocklaunch/core/profile_manager.h"
 #include "rocklaunch/core/rocksmith2014_remastered_profile.h"
 #include "rocklaunch/core/runners/launcher_runner_source.h"
 #include "rocklaunch/core/runners/runner_manager.h"
@@ -22,18 +22,6 @@
 namespace
 {
 
-// First unused "<gameId>-<n>" name so bare `profile new` keeps creating distinct profiles.
-std::string NextDefaultProfileId(const std::string &gameId,
-                                 const rocklaunch::ConfigStore &configStore)
-{
-    for (int index = 1;; ++index) {
-        std::string candidate = gameId + "-" + std::to_string(index);
-        if (!configStore.ProfileExists(candidate)) {
-            return candidate;
-        }
-    }
-}
-
 // Confirmation for destructive commands. CLI-only; the core never prompts.
 bool ConfirmDestructive(const std::string &what)
 {
@@ -48,32 +36,27 @@ bool ConfirmDestructive(const std::string &what)
 
 // Profile commands
 
-int CreateProfile(const std::string &profileId,
-                  rocklaunch::ConfigStore &configStore,
-                  const rocklaunch::Rocksmith2014RemasteredProfile &gameProfile)
+// Creates a profile from core business rules; an empty id asks for the next free
+// "<gameId>-<n>" name. Only the outcome is printed here.
+int CreateProfile(const std::string &profileId, rocklaunch::ProfileManager &profiles)
 {
-    if (!configStore.ProfileExists(profileId)) {
-        rocklaunch::ProfileConfig config;
-        config.id = profileId;
-        config.gameId = gameProfile.Id();
-        config.prefixDir = rocklaunch::ConfigStore::DefaultDataDir() / "prefixes" / profileId;
-        configStore.SaveProfile(config);
-        std::cout << "Created profile: " << profileId << '\n';
-        return 0;
-    }
-
-    PrintError("Profile already exists: " + profileId);
-    return 1;
-}
-
-int ShowProfile(const std::string &profileId, rocklaunch::ConfigStore &configStore)
-{
-    if (!configStore.ProfileExists(profileId)) {
-        PrintError("Profile not found: " + profileId);
+    std::optional<rocklaunch::ProfileConfig> created = profiles.CreateDefaultProfile(profileId);
+    if (!created.has_value()) {
         return 1;
     }
 
-    rocklaunch::ProfileConfig config = configStore.LoadProfile(profileId);
+    std::cout << "Created profile: " << created->id << '\n';
+    return 0;
+}
+
+int ShowProfile(const std::string &profileId, rocklaunch::ProfileManager &profiles)
+{
+    std::optional<rocklaunch::ProfileConfig> maybeConfig = profiles.GetProfile(profileId);
+    if (!maybeConfig.has_value()) {
+        return 1;
+    }
+
+    const rocklaunch::ProfileConfig &config = *maybeConfig;
     std::cout << "Profile: " << config.id << '\n'
               << "Game: " << config.gameId << '\n'
               << "Prefix path: " << config.prefixDir << '\n'
@@ -127,22 +110,13 @@ int ListRunners(const rocklaunch::RunnerManager &runnerManager)
 
 int SetRunner(const std::string &profileId,
                const std::string &runnerId,
-               rocklaunch::ConfigStore &configStore,
+               rocklaunch::ProfileManager &profiles,
                const rocklaunch::RunnerManager &runnerManager)
 {
-    if (!configStore.ProfileExists(profileId)) {
-        PrintError("Profile not found: " + profileId);
+    if (!profiles.SetRunner(profileId, runnerId, runnerManager)) {
         return 1;
     }
 
-    if (!runnerManager.Find(runnerId).has_value()) {
-        PrintError("Runner not found: " + runnerId);
-        return 1;
-    }
-
-    rocklaunch::ProfileConfig config = configStore.LoadProfile(profileId);
-    config.runnerId = runnerId;
-    configStore.SaveProfile(config);
     std::cout << "Assigned runner " << runnerId << " to profile " << profileId << '\n';
     return 0;
 }
@@ -273,21 +247,17 @@ int RemoveRunner(const std::string &runnerName, bool force,
 }
 
 int RemoveProfile(const std::string &profileId,
-                  rocklaunch::ConfigStore &configStore,
+                  rocklaunch::ProfileManager &profiles,
                   bool force)
 {
-    if (!configStore.ProfileExists(profileId)) {
-        PrintError("Profile not found: " + profileId);
-        return 1;
-    }
-
+    // DeleteProfile checks existence itself, so a corrupt profile (whose JSON
+    // cannot be read) is still removable from both the CLI and the GUI.
     if (!force && !ConfirmDestructive("Remove profile " + profileId + " and its prefix?")) {
         std::cout << "Aborted.\n";
         return 1;
     }
 
-    if (!configStore.DeleteProfile(profileId)) {
-        PrintError("Profile not found: " + profileId);
+    if (!profiles.DeleteProfile(profileId)) {
         return 1;
     }
 
@@ -405,57 +375,31 @@ int PatchStatus(const std::string &profileId,
 
 int SetPath(const std::string &profileId,
             const std::string &path,
-            rocklaunch::ConfigStore &configStore,
-            const rocklaunch::Rocksmith2014RemasteredProfile &gameProfile)
+            rocklaunch::ProfileManager &profiles)
 {
-    if (!configStore.ProfileExists(profileId)) {
-        PrintError("Profile not found: " + profileId
-                    + "\nCreate it first with profile new <profile>.");
-        return 1;
-    }
-
-    rocklaunch::ManualSource source(path);
-    std::optional<rocklaunch::fs::path> installDir = source.Locate(gameProfile);
+    std::optional<rocklaunch::fs::path> installDir = profiles.SetInstallPath(profileId, path);
     if (!installDir.has_value()) {
-        PrintError("Invalid Rocksmith 2014 installation: " + path
-                    + "\nExpected Rocksmith2014.exe and a dlc directory.");
         return 1;
     }
-
-    std::optional<std::string> conflictingProfile =
-        configStore.ProfileUsingInstallDir(*installDir, profileId);
-    if (conflictingProfile.has_value()) {
-        PrintError("This game installation is already used by profile: "
-                    + *conflictingProfile);
-        return 1;
-    }
-
-    rocklaunch::ProfileConfig config = configStore.LoadProfile(profileId);
-
-    // A profile is bound to one game; never point it at another game's installation.
-    if (config.gameId != gameProfile.Id()) {
-        PrintError("Profile " + profileId + " is for game " + config.gameId
-                    + ", not " + gameProfile.Id());
-        return 1;
-    }
-
-    config.installDir = *installDir;
-    configStore.SaveProfile(config);
 
     std::cout << "Saved profile " << profileId << ": " << *installDir << '\n';
     return 0;
 }
 
-int ListProfiles(rocklaunch::ConfigStore &configStore)
+int ListProfiles(rocklaunch::ProfileManager &profiles, const std::string &gameId)
 {
-    std::vector<std::string> profileIds = configStore.ListProfileIds();
-    if (profileIds.empty()) {
-        std::cout << "No profiles are configured.\n";
+    std::vector<rocklaunch::ProfileConfig> profileList = profiles.ListProfiles(gameId);
+    if (profileList.empty()) {
+        if (gameId.empty()) {
+            std::cout << "No profiles are configured.\n";
+        } else {
+            std::cout << "No profiles for game " << gameId << ".\n";
+        }
         return 0;
     }
 
-    for (const std::string &profileId : profileIds) {
-        std::cout << Color(profileId, kProfileColor) << '\n';
+    for (const rocklaunch::ProfileConfig &profile : profileList) {
+        std::cout << Color(profile.id, kProfileColor) << '\n';
     }
 
     return 0;
@@ -464,48 +408,23 @@ int ListProfiles(rocklaunch::ConfigStore &configStore)
 // Launch
 
 int LaunchProfile(const std::string &profileId,
-                  rocklaunch::ConfigStore &configStore,
+                  rocklaunch::ProfileManager &profiles,
                   const rocklaunch::Rocksmith2014RemasteredProfile &gameProfile,
                   const rocklaunch::RunnerManager &runnerManager)
 {
-    if (!configStore.ProfileExists(profileId)) {
-        PrintError("Profile not found: " + profileId);
+    // Pre-flight checks are core business rules shared with the GUI.
+    rocklaunch::ProfileValidation validation = profiles.ValidateProfile(profileId, runnerManager);
+    if (!validation.isValid) {
         return 1;
     }
 
-    rocklaunch::ProfileConfig config = configStore.LoadProfile(profileId);
-
-    // The game the profile belongs to must match the game we are about to launch.
-    if (config.gameId != gameProfile.Id()) {
-        PrintError("Profile " + profileId + " is for game " + config.gameId
-                    + ", which this build does not support.");
-        return 1;
-    }
-
-    if (config.installDir.empty()) {
-        PrintError("Profile " + profileId + " has no install path. "
-                    + "Use set-path <profile> <path> first.");
-        return 1;
-    }
-
-    if (config.runnerId.empty()) {
-        PrintError("Profile " + profileId + " has no runner. "
-                    + "Use runner set <profile> <runner> first.");
-        return 1;
-    }
-
+    rocklaunch::ProfileConfig config = profiles.GetProfile(profileId).value();
     std::optional<rocklaunch::Runner> runner = runnerManager.Find(config.runnerId);
-    if (!runner.has_value()) {
-        PrintError("Runner not found: " + config.runnerId);
-        return 1;
-    }
 
     rocklaunch::LaunchCommand launch = rocklaunch::BuildLaunchCommand(config, *runner, gameProfile);
 
-    std::vector<std::string> warnings = rocklaunch::EnsurePrefix(config.prefixDir, *runner);
-    for (const std::string &warning : warnings) {
-        PrintWarning("Warning: " + warning);
-    }
+    // Prefix creation also reports its warnings through the core logger.
+    rocklaunch::EnsurePrefix(config.prefixDir, *runner);
 
     if (!rocklaunch::ExecLaunchCommand(launch)) {
         PrintError("Failed to start '" + launch.command.front() + "': "
@@ -525,6 +444,7 @@ int main(int argc, char *argv[])
     try {
         rocklaunch::ConfigStore configStore;
         rocklaunch::Rocksmith2014RemasteredProfile profile;
+        rocklaunch::ProfileManager profiles(configStore, profile);
         rocklaunch::RunnerManager runnerManager = rocklaunch::RunnerManager::CreateDefault();
         rocklaunch::PatchManager patchManager =
             rocklaunch::PatchManager::CreateDefault(configStore);
@@ -546,7 +466,7 @@ int main(int argc, char *argv[])
         }
 
         if (argument == "set-path" && argc == 4) {
-            return SetPath(argv[2], argv[3], configStore, profile);
+            return SetPath(argv[2], argv[3], profiles);
         }
 
         if (argument == "runner" && argc == 3 && std::string_view(argv[2]) == "-u") {
@@ -558,7 +478,7 @@ int main(int argc, char *argv[])
         }
 
         if (argument == "runner" && argc == 5 && std::string_view(argv[2]) == "set") {
-            return SetRunner(argv[3], argv[4], configStore, runnerManager);
+            return SetRunner(argv[3], argv[4], profiles, runnerManager);
         }
 
         if (argument == "runner" && argc >= 4 && std::string_view(argv[2]) == "search") {
@@ -605,7 +525,7 @@ int main(int argc, char *argv[])
         }
 
         if (argument == "launch" && argc == 3) {
-            return LaunchProfile(argv[2], configStore, profile, runnerManager);
+            return LaunchProfile(argv[2], profiles, profile, runnerManager);
         }
 
         if (argument == "patch" && argc == 3 && std::string_view(argv[2]) == "list") {
@@ -639,29 +559,32 @@ int main(int argc, char *argv[])
         }
 
         if (argument == "profile" && argc == 3 && std::string_view(argv[2]) == "list") {
-            return ListProfiles(configStore);
+            return ListProfiles(profiles, "");
+        }
+
+        if (argument == "profile" && argc == 4 && std::string_view(argv[2]) == "list") {
+            return ListProfiles(profiles, argv[3]);
         }
 
         if (argument == "profile" && argc == 3 && std::string_view(argv[2]) == "new") {
-            std::string profileId = NextDefaultProfileId(profile.Id(), configStore);
-            return CreateProfile(profileId, configStore, profile);
+            return CreateProfile("", profiles);
         }
 
         if (argument == "profile" && argc == 4 && std::string_view(argv[2]) == "new") {
-            return CreateProfile(argv[3], configStore, profile);
+            return CreateProfile(argv[3], profiles);
         }
 
         if (argument == "profile" && argc == 4 && std::string_view(argv[2]) == "show") {
-            return ShowProfile(argv[3], configStore);
+            return ShowProfile(argv[3], profiles);
         }
 
         if (argument == "profile" && argc == 4 && std::string_view(argv[2]) == "remove") {
-            return RemoveProfile(argv[3], configStore, false);
+            return RemoveProfile(argv[3], profiles, false);
         }
 
         if (argument == "profile" && argc == 5 && std::string_view(argv[2]) == "remove"
             && IsForceFlag(std::string_view(argv[3]))) {
-            return RemoveProfile(argv[4], configStore, true);
+            return RemoveProfile(argv[4], profiles, true);
         }
 
         bool knownTopLevel = argument == "profile" || argument == "runner"

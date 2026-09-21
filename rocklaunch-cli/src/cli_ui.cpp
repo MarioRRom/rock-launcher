@@ -66,7 +66,7 @@ std::string CommandUsage(const std::string &command, const std::string &sub)
     }
     if (command == "profile") {
         if (sub == "list") {
-            return "rocklaunch-cli profile list";
+            return "rocklaunch-cli profile list [<game_id>]";
         }
         if (sub == "new") {
             return "rocklaunch-cli profile new [<name>]";
@@ -101,7 +101,7 @@ void PrintUsage()
               << "    rocklaunch-cli <command> [options]\n"
               << "\n"
               << "PROFILES:\n";
-    PrintUsageEntry("profile list", "List all profiles.");
+    PrintUsageEntry("profile list [<game_id>]", "List profiles (optionally for one game).");
     PrintUsageEntry("profile new [<name>]", "Create a profile (auto-named if omitted).");
     PrintUsageEntry("profile show <profile>", "Show profile details.");
     PrintUsageEntry("profile remove <profile>", "Remove a profile and its prefix.");
@@ -140,11 +140,6 @@ std::string PadLeft(const std::string &text, std::size_t width)
 void PrintError(const std::string &message)
 {
     std::cerr << Color(message, "31") << '\n';
-}
-
-void PrintWarning(const std::string &message)
-{
-    std::cerr << Color(message, "33") << '\n';
 }
 
 void PrintUsageError(const std::string &message,
