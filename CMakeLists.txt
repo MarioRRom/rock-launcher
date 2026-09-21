@@ -78,4 +78,16 @@ if (BUILD_TESTING)
             -DTEST_ROOT=${CMAKE_BINARY_DIR}/launch-test
             -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch.cmake
     )
+
+    # Core LaunchSession tests: the session has no CLI surface (the CLI keeps
+    # ExecLaunchCommand), so it is exercised as a small core unit-test binary.
+    add_executable(rocklaunch-core-launch-session-test
+        rocklaunch-core/tests/launch_session_test.cpp
+    )
+    target_link_libraries(rocklaunch-core-launch-session-test PRIVATE rocklaunch::core)
+    add_test(
+        NAME rocklaunch-core-launch-session
+        COMMAND rocklaunch-core-launch-session-test
+            ${CMAKE_BINARY_DIR}/launch-session-test
+    )
 endif()

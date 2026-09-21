@@ -1,6 +1,7 @@
 add_library(rocklaunch-core
     src/config_store.cpp
     src/launch.cpp
+    src/launch_session.cpp
     src/logger.cpp
     src/manual_source.cpp
     src/profile_manager.cpp
