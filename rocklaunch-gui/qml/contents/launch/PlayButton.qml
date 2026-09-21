@@ -21,7 +21,9 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
 
+// Config
 import "../../components"
+import RockLaunch.Gui
 
 Rectangle {
     id: root
@@ -32,8 +34,45 @@ Rectangle {
     property color accentColor: "#a6e3a1"
     property color accentHoverColor: "#94d29c"
     property color accentPressedColor: "#80c788"
+    property string label: "LAUNCH"
 
-    signal clicked()
+    // States are driven by the LaunchController state machine.
+    // Idle=0, PreparingPrefix=1, Starting=2, Running=3, Finished=4, Error=5.
+    states: [
+        State {
+            name: "preparing"
+            when: LaunchController.launchState === 1
+            PropertyChanges {
+                target: root
+                label: "PREPARING"
+                accentColor: "#f9e2af"
+                accentHoverColor: "#e8cf94"
+                accentPressedColor: "#d4b878"
+            }
+        },
+        State {
+            name: "starting"
+            when: LaunchController.launchState === 2
+            PropertyChanges {
+                target: root
+                label: "LAUNCHING"
+                accentColor: "#f9e2af"
+                accentHoverColor: "#e8cf94"
+                accentPressedColor: "#d4b878"
+            }
+        },
+        State {
+            name: "running"
+            when: LaunchController.launchState === 3
+            PropertyChanges {
+                target: root
+                label: "STOP"
+                accentColor: "#f38ba8"
+                accentHoverColor: "#e2748f"
+                accentPressedColor: "#ce5c7b"
+            }
+        }
+    ]
 
     implicitWidth: 260
     implicitHeight: 64
@@ -53,7 +92,7 @@ Rectangle {
 
             Text {
                 anchors.centerIn: parent
-                text: "LAUNCH"
+                text: root.label
                 font.pixelSize: 30
                 font.bold: true
                 color: "#1e1e2e"
@@ -79,6 +118,6 @@ Rectangle {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onClicked: root.clicked()
+        onClicked: LaunchController.launch()
     }
 }

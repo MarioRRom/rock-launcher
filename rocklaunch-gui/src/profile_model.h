@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rocklaunch/core/config_store.h"
+#include "rocklaunch/core/profile_manager.h"
 
 #include <QObject>
 #include <QStringList>
@@ -32,7 +32,7 @@ public:
         s_instance = instance;
     }
 
-    void SetConfigStore(rocklaunch::ConfigStore *store);
+    void SetProfileManager(rocklaunch::ProfileManager *manager);
     void SetGameProfileModel(GameProfileModel *model);
 
     QStringList profiles() const;
@@ -48,11 +48,9 @@ signals:
     void currentProfileChanged();
 
 private:
-    QString nextDefaultId() const;
-
-    rocklaunch::ConfigStore *m_store = nullptr;
+    rocklaunch::ProfileManager *m_profiles = nullptr;
     GameProfileModel *m_gameProfileModel = nullptr;
-    QStringList m_profiles;
+    QStringList m_profileIds;
     QString m_currentProfile;
     inline static ProfileModel *s_instance = nullptr;
 };

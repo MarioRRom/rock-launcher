@@ -52,6 +52,7 @@ Rectangle {
         }
 
         GameProfileButton {
+            visible: false // THIS IS A PLACEHOLDER, rocksmith+ is supported coming soon
             actived: root.currentGame === "rocksmithplus"
             icon: "../assets/LOGO/rockpluslogo.png"
             onClicked: { root.currentGame = "rocksmithplus"; root.gameChanged("rocksmithplus") }

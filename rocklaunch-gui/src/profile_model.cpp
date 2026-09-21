@@ -7,9 +7,12 @@ ProfileModel::ProfileModel(QObject *parent)
 {
 }
 
-void ProfileModel::SetConfigStore(rocklaunch::ConfigStore *store)
+void ProfileModel::SetProfileManager(rocklaunch::ProfileManager *manager)
 {
-    m_store = store;
+    if (m_profiles == manager) {
+        return;
+    }
+    m_profiles = manager;
     refresh();
 }
 
@@ -31,7 +34,7 @@ void ProfileModel::SetGameProfileModel(GameProfileModel *model)
 
 QStringList ProfileModel::profiles() const
 {
-    return m_profiles;
+    return m_profileIds;
 }
 
 QString ProfileModel::currentProfile() const
@@ -50,19 +53,18 @@ void ProfileModel::setCurrentProfile(const QString &id)
 
 QString ProfileModel::createProfile()
 {
-    if (!m_store || !m_gameProfileModel) {
+    if (!m_profiles || !m_gameProfileModel) {
         return {};
     }
 
-    QString id = nextDefaultId();
-    std::string stdId = id.toStdString();
+    // Core picks the next free "<gameId>-<n>" id and binds the default prefix.
+    std::optional<rocklaunch::ProfileConfig> created =
+        m_profiles->CreateDefaultProfile("");
+    if (!created.has_value()) {
+        return {};
+    }
 
-    rocklaunch::ProfileConfig config;
-    config.id = stdId;
-    config.gameId = m_gameProfileModel->gameId().toStdString();
-    config.prefixDir = rocklaunch::ConfigStore::DefaultDataDir() / "prefixes" / stdId;
-    m_store->SaveProfile(config);
-
+    QString id = QString::fromStdString(created->id);
     refresh();
     m_currentProfile = id;
     emit currentProfileChanged();
@@ -71,11 +73,11 @@ QString ProfileModel::createProfile()
 
 bool ProfileModel::removeProfile(const QString &id)
 {
-    if (!m_store) {
+    if (!m_profiles) {
         return false;
     }
 
-    bool removed = m_store->DeleteProfile(id.toStdString());
+    bool removed = m_profiles->DeleteProfile(id.toStdString());
     if (removed) {
         if (m_currentProfile == id) {
             m_currentProfile.clear();
@@ -88,48 +90,32 @@ bool ProfileModel::removeProfile(const QString &id)
 
 void ProfileModel::refresh()
 {
-    if (!m_store || !m_gameProfileModel) {
-        if (!m_profiles.isEmpty()) {
-            m_profiles.clear();
+    if (!m_profiles || !m_gameProfileModel) {
+        if (!m_profileIds.isEmpty()) {
+            m_profileIds.clear();
             emit profilesChanged();
         }
         return;
     }
 
     std::string gameId = m_gameProfileModel->gameId().toStdString();
+    // Core lists only profiles bound to the selected game and skips corrupt
+    // profile files with a logged warning instead of throwing.
     QStringList updated;
-    for (const auto &id : m_store->ListProfileIds()) {
-        rocklaunch::ProfileConfig config = m_store->LoadProfile(id);
-        if (config.gameId == gameId) {
-            updated.append(QString::fromStdString(id));
-        }
+    for (const rocklaunch::ProfileConfig &profile : m_profiles->ListProfiles(gameId)) {
+        updated.append(QString::fromStdString(profile.id));
     }
 
-    if (m_profiles != updated) {
-        m_profiles = updated;
+    if (m_profileIds != updated) {
+        m_profileIds = updated;
         emit profilesChanged();
     }
 
-    if (m_currentProfile.isEmpty() && !m_profiles.isEmpty()) {
-        m_currentProfile = m_profiles.first();
+    if (m_currentProfile.isEmpty() && !m_profileIds.isEmpty()) {
+        m_currentProfile = m_profileIds.first();
         emit currentProfileChanged();
-    } else if (!m_currentProfile.isEmpty() && !m_profiles.contains(m_currentProfile)) {
-        m_currentProfile = m_profiles.isEmpty() ? QString() : m_profiles.first();
+    } else if (!m_currentProfile.isEmpty() && !m_profileIds.contains(m_currentProfile)) {
+        m_currentProfile = m_profileIds.isEmpty() ? QString() : m_profileIds.first();
         emit currentProfileChanged();
-    }
-}
-
-QString ProfileModel::nextDefaultId() const
-{
-    if (!m_store || !m_gameProfileModel) {
-        return {};
-    }
-
-    std::string gameId = m_gameProfileModel->gameId().toStdString();
-    for (int i = 1;; ++i) {
-        std::string candidate = gameId + "-" + std::to_string(i);
-        if (!m_store->ProfileExists(candidate)) {
-            return QString::fromStdString(candidate);
-        }
     }
 }

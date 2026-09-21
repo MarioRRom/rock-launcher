@@ -3,6 +3,7 @@
 #include "profile_model.h"
 
 #include "rocklaunch/core/config_store.h"
+#include "rocklaunch/core/profile_manager.h"
 #include "rocklaunch/core/rocksmith2014_remastered_profile.h"
 
 #include <QGuiApplication>
@@ -16,16 +17,17 @@ int main(int argc, char *argv[])
 
     rocklaunch::ConfigStore configStore;
     rocklaunch::Rocksmith2014RemasteredProfile rs2014;
+    rocklaunch::ProfileManager profileManager(configStore, rs2014);
 
     GameProfileModel gameProfileModel;
     gameProfileModel.setGameId(QString::fromStdString(rs2014.Id()));
 
     ProfileModel profileModel;
-    profileModel.SetConfigStore(&configStore);
+    profileModel.SetProfileManager(&profileManager);
     profileModel.SetGameProfileModel(&gameProfileModel);
 
     LaunchController launchController;
-    launchController.SetConfigStore(&configStore);
+    launchController.SetProfileManager(&profileManager);
     launchController.SetProfileModel(&profileModel);
 
     qmlRegisterSingletonInstance("RockLaunch.Gui", 1, 0, "GameProfileModel", &gameProfileModel);
