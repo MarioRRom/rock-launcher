@@ -48,6 +48,22 @@ if (BUILD_TESTING)
     )
 
     add_test(
+        NAME rocklaunch-cli-profile-duplicate
+        COMMAND ${CMAKE_COMMAND}
+            -DROCKLAUNCH_CLI=$<TARGET_FILE:rocklaunch-cli>
+            -DTEST_ROOT=${CMAKE_BINARY_DIR}/profile-duplicate-test
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/profile_duplicate.cmake
+    )
+
+    add_test(
+        NAME rocklaunch-cli-profile-corrupt
+        COMMAND ${CMAKE_COMMAND}
+            -DROCKLAUNCH_CLI=$<TARGET_FILE:rocklaunch-cli>
+            -DTEST_ROOT=${CMAKE_BINARY_DIR}/profile-corrupt-test
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/profile_corrupt.cmake
+    )
+
+    add_test(
         NAME rocklaunch-cli-runner-manager
         COMMAND ${CMAKE_COMMAND}
             -DROCKLAUNCH_CLI=$<TARGET_FILE:rocklaunch-cli>

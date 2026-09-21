@@ -5,6 +5,9 @@ AGENTS.md
 # CMake build output
 build/
 
+# Qt / qml
+.qmlls.ini
+
 # Compiled artifacts (safety net if anything escapes the build directory)
 *.o
 *.a
