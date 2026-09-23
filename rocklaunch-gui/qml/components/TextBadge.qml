@@ -16,46 +16,34 @@
 //  `-------------------------'
 
 // Qt Imports
-pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 
-
 Rectangle {
-    anchors.fill: parent
-    anchors.margins: 30
-    color: "transparent"
+    id: root
 
-    // Title placeholder
-    ColumnLayout {
+    // Public API
+    property string text: ""
+    property color bgColor: "#313244"
+    property color textColor: "#cdd6f4"
+    property int size: 22
+
+    // Width hugs the text; height is the badge size
+    implicitWidth: badgeLabel.implicitWidth + 16
+    implicitHeight: root.size
+    radius: implicitHeight / 2
+    color: root.bgColor
+
+    // Never stretch inside parent layouts
+    Layout.fillWidth: false
+    Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
+
+    Text {
+        id: badgeLabel
         anchors.centerIn: parent
-        spacing: 2
-
-        Text {
-            text: "Rock Launcher"
-            font.pixelSize: 32
-            font.bold: true
-            color: "#cdd6f4"
-            Layout.alignment: Qt.AlignHCenter
-        }
-
-        Text {
-            text: "Ready to rock on linux"
-            font.pixelSize: 16
-            color: "#a6adc8"
-            Layout.alignment: Qt.AlignHCenter
-        }
-    }
-
-    // Profile selector
-    ProfilePicker {
-        anchors.left: parent.left
-        anchors.bottom: parent.bottom
-    }
-
-    // Launch button
-    PlayButton {
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
+        text: root.text
+        font.pixelSize: Math.round(root.size * 0.55)
+        font.bold: true
+        color: root.textColor
     }
 }

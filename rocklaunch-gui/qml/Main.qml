@@ -18,7 +18,6 @@
 // Qt Imports
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 
 // Config
@@ -43,7 +42,7 @@ Window {
     //  `-------------------------'
 
     property int sidebarWidth: 240
-    property int topbarWidth: 74
+    property int topbarHeight: 74
 
     // Internal states
     property string currentPage: "launch"
@@ -82,7 +81,7 @@ Window {
 
             TopBar {
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.topbarWidth
+                Layout.preferredHeight: root.topbarHeight
                 currentGame: GameProfileModel.gameId
                 onGameChanged: (game) => GameProfileModel.gameId = game
                 visible: root.currentPage === "launch"

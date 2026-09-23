@@ -33,6 +33,9 @@ qt_add_qml_module(rocklaunch-gui
         qml/contents/launch/PlayButton.qml
         qml/contents/launch/ProfilePicker.qml
         qml/contents/runners/Runners.qml
+        qml/contents/runners/RunnerList.qml
+        qml/components/IconButton.qml
+        qml/components/TextBadge.qml
         qml/components/IconTextButton.qml
         qml/components/GameProfileButton.qml
         qml/components/SvgIcon.qml
@@ -44,6 +47,11 @@ qt_add_qml_module(rocklaunch-gui
         qml/assets/icons/settings.svg
         qml/assets/icons/bandage.svg
         qml/assets/icons/exclamation-circle.svg
+        qml/assets/icons/refresh.svg
+        qml/assets/icons/download.svg
+        qml/assets/icons/trash.svg
+        qml/assets/icons/cachyos.svg
+        qml/assets/icons/search.svg
         qml/assets/LOGO/rock2014logo.png
         qml/assets/LOGO/rockpluslogo.png
 )
