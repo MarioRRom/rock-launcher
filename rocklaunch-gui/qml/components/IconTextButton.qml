@@ -20,6 +20,9 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 
+// Config
+import RockLaunch.Gui
+
 Rectangle {
     id: root
 
@@ -32,15 +35,15 @@ Rectangle {
 
     // Normal colors
     property color bgColor: "transparent"
-    property color bgHoverColor: "#45475a"
-    property color bgPressedColor: "#585b70"
-    property color textColor: "#cdd6f4"
+    property color bgHoverColor: Theme.surface1
+    property color bgPressedColor: Theme.surface2
+    property color textColor: Theme.text
 
     // Active colors
-    property color bgColorActive: "#313244"
-    property color bgHoverColorActive: "#45475a"
-    property color bgPressedColorActive: "#585b70"
-    property color textColorActive: "#89b4fa"
+    property color bgColorActive: Theme.surface0
+    property color bgHoverColorActive: Theme.surface1
+    property color bgPressedColorActive: Theme.surface2
+    property color textColorActive: Theme.blue
 
 
     signal clicked()

@@ -22,10 +22,11 @@ import QtQuick.Layouts
 
 // Config
 import "../components"
+import RockLaunch.Gui
 
 Rectangle {
     id: root
-    color: "#313244"
+    color: Theme.surface0
 
     property string currentGame: "rocksmith2014remastered"
     signal gameChanged(string game)

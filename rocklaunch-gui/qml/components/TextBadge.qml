@@ -19,13 +19,16 @@
 import QtQuick
 import QtQuick.Layouts
 
+// Config
+import RockLaunch.Gui
+
 Rectangle {
     id: root
 
     // Public API
     property string text: ""
-    property color bgColor: "#313244"
-    property color textColor: "#cdd6f4"
+    property color bgColor: Theme.surface0
+    property color textColor: Theme.text
     property int size: 22
 
     // Width hugs the text; height is the badge size

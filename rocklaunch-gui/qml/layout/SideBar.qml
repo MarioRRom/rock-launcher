@@ -22,10 +22,11 @@ import QtQuick.Layouts
 
 // Config
 import "../components"
+import RockLaunch.Gui
 
 Rectangle {
     id: root
-    color: "#181825"
+    color: Theme.mantle
 
     // Internal Settings
     property string currentPage: "launch"

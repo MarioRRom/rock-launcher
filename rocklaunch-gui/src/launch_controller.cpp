@@ -1,7 +1,7 @@
 #include "launch_controller.h"
 
 #include "profile_model.h"
-#include "qt_process_handle.h"
+#include "utils/qt_process_handle.h"
 
 #include <QDebug>
 

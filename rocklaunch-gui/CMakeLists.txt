@@ -21,8 +21,10 @@ qt_add_qml_module(rocklaunch-gui
         src/profile_model.cpp
         src/launch_controller.h
         src/launch_controller.cpp
-        src/qt_process_handle.h
-        src/qt_process_handle.cpp
+        src/utils/qt_process_handle.h
+        src/utils/qt_process_handle.cpp
+        src/utils/theme.h
+        src/utils/theme.cpp
     QML_FILES
         qml/Main.qml
     QML_FILES

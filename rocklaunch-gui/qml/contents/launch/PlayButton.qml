@@ -28,16 +28,17 @@ import RockLaunch.Gui
 Rectangle {
     id: root
 
-    property color bgColor: "#181825"
-    property color bgHoverColor: "#313244"
-    property color bgPressedColor: "#45475a"
-    property color accentColor: "#a6e3a1"
-    property color accentHoverColor: "#94d29c"
-    property color accentPressedColor: "#80c788"
+    property color bgColor: Theme.mantle
+    property color bgHoverColor: Theme.surface0
+    property color bgPressedColor: Theme.surface1
+    property color accentColor: Theme.green
+    property color accentHoverColor: Qt.darker(accentColor, 1.08)
+    property color accentPressedColor: Qt.darker(accentColor, 1.16)
     property string label: "LAUNCH"
 
     // States are driven by the LaunchController state machine.
     // Idle=0, PreparingPrefix=1, Starting=2, Running=3, Finished=4, Error=5.
+    // Only the accent changes; hover/pressed derive from it via Qt.darker.
     states: [
         State {
             name: "preparing"
@@ -45,9 +46,7 @@ Rectangle {
             PropertyChanges {
                 target: root
                 label: "PREPARING"
-                accentColor: "#f9e2af"
-                accentHoverColor: "#e8cf94"
-                accentPressedColor: "#d4b878"
+                accentColor: Theme.yellow
             }
         },
         State {
@@ -56,9 +55,7 @@ Rectangle {
             PropertyChanges {
                 target: root
                 label: "LAUNCHING"
-                accentColor: "#f9e2af"
-                accentHoverColor: "#e8cf94"
-                accentPressedColor: "#d4b878"
+                accentColor: Theme.yellow
             }
         },
         State {
@@ -67,9 +64,7 @@ Rectangle {
             PropertyChanges {
                 target: root
                 label: "STOP"
-                accentColor: "#f38ba8"
-                accentHoverColor: "#e2748f"
-                accentPressedColor: "#ce5c7b"
+                accentColor: Theme.red
             }
         }
     ]
@@ -95,7 +90,7 @@ Rectangle {
                 text: root.label
                 font.pixelSize: 30
                 font.bold: true
-                color: "#1e1e2e"
+                color: Theme.base
             }
         }
 

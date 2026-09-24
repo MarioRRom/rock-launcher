@@ -37,7 +37,7 @@ Rectangle {
     implicitWidth: 240
     implicitHeight: actived ? header.height + 150 : header.height
     radius: 12
-    color: "#cba6f7"
+    color: Theme.mauve
     clip: true
 
     Behavior on implicitHeight {
@@ -68,7 +68,7 @@ Rectangle {
             Text {
                 text: root.currentProfile
                 font.pixelSize: 16
-                color: "#181825"
+                color: Theme.base
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignVCenter
                 elide: Text.ElideRight
@@ -78,7 +78,7 @@ Rectangle {
                 icon: "player-play"
                 Layout.alignment: Qt.AlignVCenter
                 size: 18
-                color: "#181825"
+                color: Theme.base
                 rotation: root.actived ? 270 : 90
 
                 Behavior on rotation {
@@ -110,7 +110,7 @@ Rectangle {
         anchors.top: header.bottom
         anchors.bottom: parent.bottom
         anchors.margins: 2
-        color: "#181825"
+        color: Theme.mantle
         radius: 12
         clip: true
         visible: root.implicitHeight > header.height
@@ -143,7 +143,7 @@ Rectangle {
                     width: ListView.view.width
                     height: 40
                     radius: 8
-                    color: delegateHover.pressed ? "#45475a" : delegateHover.containsMouse ? "#313244" : "transparent"
+                    color: delegateHover.pressed ? Theme.surface1 : delegateHover.containsMouse ? Theme.surface0 : "transparent"
 
                     RowLayout {
                         anchors.fill: parent
@@ -154,7 +154,7 @@ Rectangle {
                         Text {
                             text: profileCard.modelData
                             font.pixelSize: 14
-                            color: profileCard.modelData === root.currentProfile ? "#a6e3a1" : "#cdd6f4"
+                            color: profileCard.modelData === root.currentProfile ? Theme.green : Theme.text
                             Layout.fillWidth: true
                         }
 
@@ -162,7 +162,7 @@ Rectangle {
                             visible: profileCard.modelData === root.currentProfile
                             icon: "player-play"
                             size: 16
-                            color: "#a6e3a1"
+                            color: Theme.green
                         }
                     }
 
@@ -184,7 +184,7 @@ Rectangle {
             Rectangle {
                 Layout.fillWidth: true
                 height: 1
-                color: "#1e1e2e"
+                color: Theme.base
             }
 
             //  .-------------------------.

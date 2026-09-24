@@ -22,6 +22,7 @@ import QtQuick.Layouts
 
 // Config
 import "../../components"
+import RockLaunch.Gui
 
 // Runner list: one card per runner (icon, version, badges, actions).
 // Feed it a model from the parent page (e.g. root.runners).
@@ -43,7 +44,7 @@ ListView {
         width: ListView.view.width
         height: 80
         radius: 12
-        color: "#313244"
+        color: Theme.surface0
 
         RowLayout {
             anchors.fill: parent
@@ -56,7 +57,7 @@ ListView {
                 id: runnerIcon
                 Layout.alignment: Qt.AlignVCenter
                 icon: "glass-full" // TODO: wire to C++ icon per type
-                color: "#cba6f7"
+                color: Theme.mauve
                 size: parent.height - 24
             }
 
@@ -69,7 +70,7 @@ ListView {
                 Text {
                     text: runnerCard.modelData
                     font.pixelSize: 18
-                    color: "#cdd6f4"
+                    color: Theme.text
                 }
 
                 // Runner badges (size + installed, side by side)
@@ -80,16 +81,16 @@ ListView {
                     // Runner size
                     TextBadge {
                         text: "240MB" // TODO: wire to C++ size
-                        bgColor: "#89b4fa"
-                        textColor: "#1e1e2e"
+                        bgColor: Theme.blue
+                        textColor: Theme.base
                         size: 20
                     }
 
                     // Installed check
                     TextBadge {
                         text: "Installed"
-                        bgColor: "#a6e3a1"
-                        textColor: "#1e1e2e"
+                        bgColor: Theme.green
+                        textColor: Theme.base
                         visible: false // TODO: wire to C++ installed check, flip to true when installed
                     }
                 }

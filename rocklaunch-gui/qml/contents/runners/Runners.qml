@@ -23,6 +23,7 @@ import QtQuick.Controls
 
 // Config
 import "../../components"
+import RockLaunch.Gui
 
 
 Rectangle {
@@ -51,7 +52,7 @@ Rectangle {
                 actived: true
                 text: "GE-Proton"
                 icon: "glass-full"
-                textColorActive: "#cba6f7"
+                textColorActive: Theme.mauve
                 size: parent.height
                 onClicked: {
                     // TODO: wire to C++ Ge-Proton list
@@ -62,7 +63,7 @@ Rectangle {
             IconTextButton {
                 text: "Proton-Cachyos"
                 icon: "cachyos"
-                textColorActive: "#89dceb"
+                textColorActive: Theme.sky
                 size: parent.height
                 onClicked: {
                     // TODO: wire to C++ Proton-Cachyos list
@@ -78,10 +79,10 @@ Rectangle {
                 Layout.preferredWidth: 300
                 Layout.preferredHeight: headerRow.Layout.preferredHeight
                 Layout.alignment: Qt.AlignVCenter
-                color: "#cdd6f4"
-                placeholderTextColor: "#a6adc8"
+                color: Theme.text
+                placeholderTextColor: Theme.subtext0
                 background: Rectangle {
-                    color: "#313244"
+                    color: Theme.surface0
                     radius: 12
 
                     // Search icon
@@ -115,7 +116,7 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 1
-            color: "#45475a"
+            color: Theme.surface1
         }
 
 

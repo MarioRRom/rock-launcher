@@ -20,6 +20,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 
+// Config
+import RockLaunch.Gui
 
 Rectangle {
     anchors.fill: parent
@@ -35,14 +37,14 @@ Rectangle {
             text: "Rock Launcher"
             font.pixelSize: 32
             font.bold: true
-            color: "#cdd6f4"
+            color: Theme.text
             Layout.alignment: Qt.AlignHCenter
         }
 
         Text {
             text: "Ready to rock on linux"
             font.pixelSize: 16
-            color: "#a6adc8"
+            color: Theme.subtext0
             Layout.alignment: Qt.AlignHCenter
         }
     }

@@ -21,6 +21,9 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
 
+// Config
+import RockLaunch.Gui
+
 Rectangle {
     id: root
 
@@ -31,16 +34,16 @@ Rectangle {
     property int borderRadius: 8
 
     // Normal colors
-    property color imageColor: "#cdd6f4"
+    property color imageColor: Theme.text
     property color bgColor: "transparent"
-    property color bgHoverColor: "#45475a"
-    property color bgPressedColor: "#585b70"
+    property color bgHoverColor: Theme.surface1
+    property color bgPressedColor: Theme.surface2
 
     // Active colors
-    property color imageColorActive: "#313244"
-    property color bgColorActive: "#f9e2af"
-    property color bgHoverColorActive: "#45475a"
-    property color bgPressedColorActive: "#585b70"
+    property color imageColorActive: Theme.surface0
+    property color bgColorActive: Theme.yellow
+    property color bgHoverColorActive: Theme.surface1
+    property color bgPressedColorActive: Theme.surface2
 
     signal clicked()
 

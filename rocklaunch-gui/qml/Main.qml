@@ -32,7 +32,7 @@ Window {
     minimumWidth: 1280
     minimumHeight: 720
     title: "RockLauncher"
-    color: "#1e1e2e"
+    color: Theme.base
     
 
     //  .-------------------------.
