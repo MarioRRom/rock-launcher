@@ -48,12 +48,14 @@ class Theme final : public QObject
     Q_PROPERTY(QColor crust READ crust NOTIFY flavorChanged)
 
 public:
-    explicit Theme(QObject *parent = nullptr);
+    explicit Theme(QObject *parent);
 
     static Theme *create(QQmlEngine *qmlEngine, QJSEngine *jsEngine)
     {
-        Q_UNUSED(qmlEngine);
         Q_UNUSED(jsEngine);
+        Q_ASSERT(s_instance);
+        Q_ASSERT(qmlEngine->thread() == s_instance->thread());
+        QJSEngine::setObjectOwnership(s_instance, QJSEngine::CppOwnership);
         return s_instance;
     }
 

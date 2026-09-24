@@ -1,6 +1,7 @@
 #include "game_profile_model.h"
 #include "launch_controller.h"
 #include "profile_model.h"
+#include "runners/runner_model.h"
 #include "utils/theme.h"
 
 #include "rocklaunch/core/config_store.h"
@@ -20,18 +21,26 @@ int main(int argc, char *argv[])
     rocklaunch::Rocksmith2014RemasteredProfile rs2014;
     rocklaunch::ProfileManager profileManager(configStore, rs2014);
 
-    GameProfileModel gameProfileModel;
+    GameProfileModel gameProfileModel(nullptr);
     gameProfileModel.setGameId(QString::fromStdString(rs2014.Id()));
+    GameProfileModel::setInstance(&gameProfileModel);
 
-    ProfileModel profileModel;
+    ProfileModel profileModel(nullptr);
     profileModel.SetProfileManager(&profileManager);
     profileModel.SetGameProfileModel(&gameProfileModel);
+    ProfileModel::setInstance(&profileModel);
 
-    LaunchController launchController;
+    LaunchController launchController(nullptr);
     launchController.SetProfileManager(&profileManager);
     launchController.SetProfileModel(&profileModel);
+    LaunchController::setInstance(&launchController);
 
-    Theme theme;
+    // Wired ahead of the runners page rework; the UI still uses a placeholder.
+    RunnerModel runnerModel(nullptr);
+    runnerModel.SetProfileModel(&profileModel);
+    RunnerModel::setInstance(&runnerModel);
+
+    Theme theme(nullptr);
     Theme::setInstance(&theme);
 
     // Backend test hook until the theme selector lands; ROCKLAUNCH_THEME
@@ -40,11 +49,6 @@ int main(int argc, char *argv[])
     if (!themeOverride.isEmpty()) {
         theme.setFlavor(themeOverride);
     }
-
-    qmlRegisterSingletonInstance("RockLaunch.Gui", 1, 0, "GameProfileModel", &gameProfileModel);
-    qmlRegisterSingletonInstance("RockLaunch.Gui", 1, 0, "ProfileModel", &profileModel);
-    qmlRegisterSingletonInstance("RockLaunch.Gui", 1, 0, "LaunchController", &launchController);
-    qmlRegisterSingletonInstance("RockLaunch.Gui", 1, 0, "Theme", &theme);
 
     QQmlApplicationEngine engine;
 

@@ -31,12 +31,14 @@ class LaunchController final : public QObject
     Q_PROPERTY(QString statusDetail READ statusDetail NOTIFY launchStateChanged)
 
 public:
-    explicit LaunchController(QObject *parent = nullptr);
+    explicit LaunchController(QObject *parent);
 
     static LaunchController *create(QQmlEngine *qmlEngine, QJSEngine *jsEngine)
     {
-        Q_UNUSED(qmlEngine);
         Q_UNUSED(jsEngine);
+        Q_ASSERT(s_instance);
+        Q_ASSERT(qmlEngine->thread() == s_instance->thread());
+        QJSEngine::setObjectOwnership(s_instance, QJSEngine::CppOwnership);
         return s_instance;
     }
 

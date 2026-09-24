@@ -13,12 +13,14 @@ class GameProfileModel final : public QObject
     Q_PROPERTY(QString gameId READ gameId WRITE setGameId NOTIFY gameIdChanged)
 
 public:
-    explicit GameProfileModel(QObject *parent = nullptr);
+    explicit GameProfileModel(QObject *parent);
 
     static GameProfileModel *create(QQmlEngine *qmlEngine, QJSEngine *jsEngine)
     {
-        Q_UNUSED(qmlEngine);
         Q_UNUSED(jsEngine);
+        Q_ASSERT(s_instance);
+        Q_ASSERT(qmlEngine->thread() == s_instance->thread());
+        QJSEngine::setObjectOwnership(s_instance, QJSEngine::CppOwnership);
         return s_instance;
     }
 

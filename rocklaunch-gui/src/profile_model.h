@@ -18,12 +18,14 @@ class ProfileModel final : public QObject
     Q_PROPERTY(QString currentProfile READ currentProfile WRITE setCurrentProfile NOTIFY currentProfileChanged)
 
 public:
-    explicit ProfileModel(QObject *parent = nullptr);
+    explicit ProfileModel(QObject *parent);
 
     static ProfileModel *create(QQmlEngine *qmlEngine, QJSEngine *jsEngine)
     {
-        Q_UNUSED(qmlEngine);
         Q_UNUSED(jsEngine);
+        Q_ASSERT(s_instance);
+        Q_ASSERT(qmlEngine->thread() == s_instance->thread());
+        QJSEngine::setObjectOwnership(s_instance, QJSEngine::CppOwnership);
         return s_instance;
     }
 
