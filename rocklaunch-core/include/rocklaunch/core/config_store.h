@@ -27,9 +27,11 @@ struct PatchState
 };
 
 // A single game installation. One profile owns one install dir, its runner and patches.
+// id is generated and never changes; name is the optional tag the user gives it.
 struct ProfileConfig
 {
     std::string id;
+    std::string name;
     std::string gameId;
     fs::path installDir;
     std::string runnerId;

@@ -32,29 +32,29 @@ file(WRITE "${TEST_ROOT}/home/.steam/steam/compatibilitytools.d/GE-Proton Test/p
 file(CHMOD "${TEST_ROOT}/home/.steam/steam/compatibilitytools.d/GE-Proton Test/proton"
     PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE)
 
-# Creating a profile assigns its prefix path right away.
-RunCli(0 profile new test-profile)
-file(READ "${TEST_ROOT}/data/rocksmith-launcher/profiles/test-profile.json" profileJson)
-if (NOT "${profileJson}" MATCHES "prefixes/test-profile")
+# Creating a profile assigns its generated id and prefix path right away.
+RunCli(0 profile new)
+file(READ "${TEST_ROOT}/data/rocksmith-launcher/profiles/rocksmith2014remastered-1.json" profileJson)
+if (NOT "${profileJson}" MATCHES "prefixes/rocksmith2014remastered-1")
     message(FATAL_ERROR "profile new did not persist the default prefix_dir")
 endif()
 
 # A profile without an install path must be rejected before launching.
-RunCli(1 launch test-profile)
+RunCli(1 launch rocksmith2014remastered-1)
 if (NOT LAST_OUTPUT MATCHES "set-path")
     message(FATAL_ERROR "Launching without an install path should mention set-path")
 endif()
 
 # A profile with a path but no runner must be rejected too.
-RunCli(0 set-path test-profile "${TEST_ROOT}/games/rock")
-RunCli(1 launch test-profile)
+RunCli(0 set-path rocksmith2014remastered-1 "${TEST_ROOT}/games/rock")
+RunCli(1 launch rocksmith2014remastered-1)
 if (NOT LAST_OUTPUT MATCHES "runner set")
     message(FATAL_ERROR "Launching without a runner should mention runner set")
 endif()
 
 # With a runner the launch prepares the prefix and runs the game process.
-RunCli(0 runner set test-profile steam-proton-ge-proton-test)
-RunCli(0 launch test-profile)
-if (NOT EXISTS "${TEST_ROOT}/data/rocksmith-launcher/prefixes/test-profile")
+RunCli(0 runner set rocksmith2014remastered-1 steam-proton-ge-proton-test)
+RunCli(0 launch rocksmith2014remastered-1)
+if (NOT EXISTS "${TEST_ROOT}/data/rocksmith-launcher/prefixes/rocksmith2014remastered-1")
     message(FATAL_ERROR "The launch did not create the profile prefix")
 endif()

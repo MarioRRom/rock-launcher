@@ -36,16 +36,37 @@ bool ConfirmDestructive(const std::string &what)
 
 // Profile commands
 
-// Creates a profile from core business rules; an empty id asks for the next free
-// "<gameId>-<n>" name. Only the outcome is printed here.
-int CreateProfile(const std::string &profileId, rocklaunch::ProfileManager &profiles)
+// Creates a profile from core business rules; the id is always the next free
+// "<gameId>-<n>" and name is an optional tag. Only the outcome is printed here.
+int CreateProfile(const std::string &name, rocklaunch::ProfileManager &profiles)
 {
-    std::optional<rocklaunch::ProfileConfig> created = profiles.CreateDefaultProfile(profileId);
+    std::optional<rocklaunch::ProfileConfig> created = profiles.CreateProfile(name);
     if (!created.has_value()) {
         return 1;
     }
 
-    std::cout << "Created profile: " << created->id << '\n';
+    std::cout << "Created profile: " << created->id;
+    if (!created->name.empty()) {
+        std::cout << " \"" << created->name << '"';
+    }
+    std::cout << '\n';
+    return 0;
+}
+
+// An empty name is valid: core clears the tag.
+int RenameProfile(const std::string &profileId,
+                  const std::string &name,
+                  rocklaunch::ProfileManager &profiles)
+{
+    if (!profiles.SetName(profileId, name)) {
+        return 1;
+    }
+
+    if (name.empty()) {
+        std::cout << "Cleared the name of profile " << profileId << '\n';
+    } else {
+        std::cout << "Profile " << profileId << " is now named \"" << name << "\"\n";
+    }
     return 0;
 }
 
@@ -58,6 +79,7 @@ int ShowProfile(const std::string &profileId, rocklaunch::ProfileManager &profil
 
     const rocklaunch::ProfileConfig &config = *maybeConfig;
     std::cout << "Profile: " << config.id << '\n'
+              << "Name: " << (config.name.empty() ? "not assigned" : config.name) << '\n'
               << "Game: " << config.gameId << '\n'
               << "Prefix path: " << config.prefixDir << '\n'
               << "Runner: " << (config.runnerId.empty() ? "not assigned" : config.runnerId) << '\n'
@@ -399,7 +421,11 @@ int ListProfiles(rocklaunch::ProfileManager &profiles, const std::string &gameId
     }
 
     for (const rocklaunch::ProfileConfig &profile : profileList) {
-        std::cout << Color(profile.id, kProfileColor) << '\n';
+        std::cout << Color(profile.id, kProfileColor);
+        if (!profile.name.empty()) {
+            std::cout << " \"" << profile.name << '"';
+        }
+        std::cout << '\n';
     }
 
     return 0;
@@ -572,6 +598,10 @@ int main(int argc, char *argv[])
 
         if (argument == "profile" && argc == 4 && std::string_view(argv[2]) == "new") {
             return CreateProfile(argv[3], profiles);
+        }
+
+        if (argument == "profile" && argc == 5 && std::string_view(argv[2]) == "rename") {
+            return RenameProfile(argv[3], argv[4], profiles);
         }
 
         if (argument == "profile" && argc == 4 && std::string_view(argv[2]) == "show") {

@@ -53,11 +53,25 @@ public:
     // nullopt when the id is invalid or no such profile exists (both logged).
     std::optional<ProfileConfig> GetProfile(const std::string &id) const;
 
-    // Creates a profile bound to the managed game. An empty preferredId picks the
-    // next free "<gameId>-<n>" name; an explicit name is used as given. Always
-    // checks that the id does not exist yet; on invalid ids or conflicts returns
-    // nullopt (logged) instead of throwing.
-    std::optional<ProfileConfig> CreateDefaultProfile(const std::string &preferredId = "");
+    // Pure check for a display tag: UTF-8 is fine, but quotes and control
+    // characters would break the `<id> "<name>"` rendering of a listing. Forms
+    // call it to reject input before saving; core logs the reason when it does.
+    static bool NameValid(const std::string &name);
+
+    // The id the next created profile will take. A hint for a form, not a
+    // reservation: CreateProfile picks the same id when it runs, so a profile
+    // created in between moves it forward.
+    std::string PreviewNextId() const;
+
+    // Creates a profile bound to the managed game under the next free
+    // "<gameId>-<n>" id, so ids can never collide and are never the user's to
+    // pick. name is an optional display tag; an empty tag leaves the profile
+    // identified by its id alone. Returns nullopt (logged) on an invalid name.
+    std::optional<ProfileConfig> CreateProfile(const std::string &name = "");
+
+    // Sets the display tag of a profile; an empty name clears it. Returns false
+    // (logged) when the profile does not exist or the name is not valid.
+    bool SetName(const std::string &id, const std::string &name);
 
     bool DeleteProfile(const std::string &id);
 
