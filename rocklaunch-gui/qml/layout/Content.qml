@@ -24,9 +24,8 @@ import QtQuick.Layouts
 import "../contents/launch"
 import "../contents/runners"
 
-Rectangle {
+Item {
     id: root
-    color: "transparent"
 
     property string currentPage: "launch"
 

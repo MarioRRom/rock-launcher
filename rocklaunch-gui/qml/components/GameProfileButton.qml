@@ -42,8 +42,8 @@ Rectangle {
     // Active colors
     property color imageColorActive: Theme.surface0
     property color bgColorActive: Theme.yellow
-    property color bgHoverColorActive: Theme.surface1
-    property color bgPressedColorActive: Theme.surface2
+    property color bgHoverColorActive: Qt.lighter(Theme.yellow, 1.1)
+    property color bgPressedColorActive: Qt.lighter(Theme.yellow, 1.2)
 
     signal clicked()
 

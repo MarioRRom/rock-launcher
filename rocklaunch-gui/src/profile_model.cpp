@@ -2,39 +2,24 @@
 
 #include "game_profile_model.h"
 
-ProfileModel::ProfileModel(QObject *parent)
+#include <utility>
+
+ProfileModel::ProfileModel(rocklaunch::ProfileManager *manager,
+                           GameProfileModel *gameModel,
+                           QObject *parent)
     : QObject(parent)
+    , m_profiles(manager)
+    , m_gameProfileModel(gameModel)
 {
-}
-
-void ProfileModel::SetProfileManager(rocklaunch::ProfileManager *manager)
-{
-    if (m_profiles == manager) {
-        return;
-    }
-    m_profiles = manager;
-    refresh();
-}
-
-void ProfileModel::SetGameProfileModel(GameProfileModel *model)
-{
-    if (m_gameProfileModel == model) {
-        return;
-    }
     if (m_gameProfileModel) {
-        disconnect(m_gameProfileModel, nullptr, this, nullptr);
-    }
-    m_gameProfileModel = model;
-    if (m_gameProfileModel) {
-        connect(m_gameProfileModel, &GameProfileModel::gameIdChanged,
-                this, &ProfileModel::refresh);
+        connect(m_gameProfileModel, &GameProfileModel::gameIdChanged, this, &ProfileModel::refresh);
     }
     refresh();
 }
 
-QStringList ProfileModel::profiles() const
+QList<ProfileEntry> ProfileModel::profiles() const
 {
-    return m_profileIds;
+    return m_entries;
 }
 
 QString ProfileModel::currentProfile() const
@@ -49,26 +34,56 @@ void ProfileModel::setCurrentProfile(const QString &id)
     }
     m_currentProfile = id;
     emit currentProfileChanged();
+    emit currentProfileNameChanged();
 }
 
-QString ProfileModel::createProfile()
+QString ProfileModel::currentProfileName() const
 {
-    if (!m_profiles || !m_gameProfileModel) {
+    const ProfileEntry *entry = entryFor(m_currentProfile);
+    return entry && !entry->name.isEmpty() ? entry->name : m_currentProfile;
+}
+
+QString ProfileModel::freeProfileId() const
+{
+    return m_profiles ? QString::fromStdString(m_profiles->PreviewNextId()) : QString();
+}
+
+QString ProfileModel::createProfile(const QString &name)
+{
+    if (!m_profiles) {
         return {};
     }
 
-    // Core picks the next free "<gameId>-<n>" id and binds the default prefix.
     std::optional<rocklaunch::ProfileConfig> created =
-        m_profiles->CreateDefaultProfile("");
+        m_profiles->CreateProfile(name.toStdString());
     if (!created.has_value()) {
         return {};
     }
 
-    QString id = QString::fromStdString(created->id);
+    QString newId = QString::fromStdString(created->id);
     refresh();
-    m_currentProfile = id;
-    emit currentProfileChanged();
-    return id;
+    setCurrentProfile(newId);
+    return newId;
+}
+
+bool ProfileModel::renameProfile(const QString &id, const QString &name)
+{
+    if (!m_profiles || !m_profiles->SetName(id.toStdString(), name.toStdString())) {
+        return false;
+    }
+    refresh();
+    return true;
+}
+
+bool ProfileModel::nameValid(const QString &name) const
+{
+    return rocklaunch::ProfileManager::NameValid(name.toStdString());
+}
+
+QString ProfileModel::profileName(const QString &id) const
+{
+    const ProfileEntry *entry = entryFor(id);
+    return entry ? entry->name : QString();
 }
 
 bool ProfileModel::removeProfile(const QString &id)
@@ -80,8 +95,7 @@ bool ProfileModel::removeProfile(const QString &id)
     bool removed = m_profiles->DeleteProfile(id.toStdString());
     if (removed) {
         if (m_currentProfile == id) {
-            m_currentProfile.clear();
-            emit currentProfileChanged();
+            setCurrentProfile(QString());
         }
         refresh();
     }
@@ -91,31 +105,40 @@ bool ProfileModel::removeProfile(const QString &id)
 void ProfileModel::refresh()
 {
     if (!m_profiles || !m_gameProfileModel) {
-        if (!m_profileIds.isEmpty()) {
-            m_profileIds.clear();
+        if (!m_entries.isEmpty()) {
+            m_entries.clear();
             emit profilesChanged();
         }
         return;
     }
 
-    std::string gameId = m_gameProfileModel->gameId().toStdString();
-    // Core lists only profiles bound to the selected game and skips corrupt
-    // profile files with a logged warning instead of throwing.
-    QStringList updated;
-    for (const rocklaunch::ProfileConfig &profile : m_profiles->ListProfiles(gameId)) {
-        updated.append(QString::fromStdString(profile.id));
+    QList<ProfileEntry> updated;
+    for (const rocklaunch::ProfileConfig &profile :
+         m_profiles->ListProfiles(m_gameProfileModel->gameId().toStdString())) {
+        updated.append(ProfileEntry(QString::fromStdString(profile.id),
+                                    QString::fromStdString(profile.name)));
     }
 
-    if (m_profileIds != updated) {
-        m_profileIds = updated;
+    if (m_entries != updated) {
+        m_entries = updated;
         emit profilesChanged();
+        emit currentProfileNameChanged();
     }
 
-    if (m_currentProfile.isEmpty() && !m_profileIds.isEmpty()) {
-        m_currentProfile = m_profileIds.first();
-        emit currentProfileChanged();
-    } else if (!m_currentProfile.isEmpty() && !m_profileIds.contains(m_currentProfile)) {
-        m_currentProfile = m_profileIds.isEmpty() ? QString() : m_profileIds.first();
-        emit currentProfileChanged();
+    const QString fallback = m_entries.isEmpty() ? QString() : m_entries.first().id;
+    if (m_currentProfile.isEmpty() && !fallback.isEmpty()) {
+        setCurrentProfile(fallback);
+    } else if (!m_currentProfile.isEmpty() && !entryFor(m_currentProfile)) {
+        setCurrentProfile(fallback);
     }
+}
+
+const ProfileEntry *ProfileModel::entryFor(const QString &id) const
+{
+    for (const ProfileEntry &entry : m_entries) {
+        if (entry.id == id) {
+            return &entry;
+        }
+    }
+    return nullptr;
 }

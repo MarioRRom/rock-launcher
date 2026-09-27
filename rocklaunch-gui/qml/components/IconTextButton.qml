@@ -31,6 +31,7 @@ Rectangle {
     property string text: ""
     property string icon: ""
     property int size: 48
+    property int textSize: root.size / 3
     property int borderRadius: 8
 
     // Normal colors
@@ -79,7 +80,7 @@ Rectangle {
         Text {
             visible: root.text !== ""
             text: root.text
-            font.pixelSize: root.size / 3
+            font.pixelSize: root.textSize
             color: root.actived ? root.textColorActive : root.textColor
             Layout.alignment: Qt.AlignVCenter
         }

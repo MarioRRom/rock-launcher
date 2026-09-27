@@ -24,183 +24,70 @@ import QtQuick.Layouts
 import "../../components"
 import RockLaunch.Gui
 
-Rectangle {
-    id: root
+ExpandableList {
+    headerText: ProfileModel.currentProfileName
+    listModel: ProfileModel.profiles
+    currentKey: ProfileModel.currentProfile
 
-    property bool actived: false
-    property string currentProfile: ProfileModel.currentProfile
-    property var profiles: ProfileModel.profiles
+    footButton: true
+    footText: "Create new profile"
+    footIcon: "plus"
+    onFootClicked: DialogController.editProfile.open({ profileNew: true })
 
-    signal profileSelected(string profile)
-    signal createProfile()
-
-    implicitWidth: 240
-    implicitHeight: actived ? header.height + 150 : header.height
-    radius: 12
-    color: Theme.mauve
-    clip: true
-
-    Behavior on implicitHeight {
-        NumberAnimation { duration: 150; easing.type: Easing.InOutQuad }
-    }
 
     //  .-------------------------.
     //  | .---------------------. |
-    //  | |    Button/Header    | |
+    //  | |     Profile Card    | |
     //  | `---------------------' |
     //  `-------------------------'
 
-    Rectangle {
-        id: header
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        height: 34
-        radius: 12
-        color: "transparent"
+    listDelegate: Rectangle {
+        id: profileCard
+        required property var modelData
+        required property int index
 
-        RowLayout {
-            anchors.fill: parent
-            anchors.leftMargin: 16
-            anchors.rightMargin: 12
-            spacing: 8
+        readonly property string profileId: modelData.id
+        readonly property string title: modelData.name !== "" ? modelData.name : modelData.id
+        readonly property bool selected: modelData.id === ProfileModel.currentProfile
 
-            Text {
-                text: root.currentProfile
-                font.pixelSize: 16
-                color: Theme.base
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignVCenter
-                elide: Text.ElideRight
-            }
+        width: ListView.view.width
+        height: 40
+        radius: 10
+        color: delegateHover.pressed ? Theme.surface1 : delegateHover.containsMouse ? Theme.surface0 : "transparent"
 
-            SvgIcon {
-                icon: "player-play"
-                Layout.alignment: Qt.AlignVCenter
-                size: 18
-                color: Theme.base
-                rotation: root.actived ? 270 : 90
-
-                Behavior on rotation {
-                    NumberAnimation { duration: 150 }
-                }
-            }
-        }
-
+        // Profile selection
         MouseArea {
-            id: headerHover
+            id: delegateHover
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: root.actived = !root.actived
+            onClicked: ProfileModel.currentProfile = profileCard.profileId
         }
-    }
 
-
-    //  .-------------------------.
-    //  | .---------------------. |
-    //  | |   Profile Content   | |
-    //  | `---------------------' |
-    //  `-------------------------'
-
-    Rectangle {
-        id: container
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: header.bottom
-        anchors.bottom: parent.bottom
-        anchors.margins: 2
-        color: Theme.mantle
-        radius: 12
-        clip: true
-        visible: root.implicitHeight > header.height
-
-        ColumnLayout {
+        RowLayout {
             anchors.fill: parent
-            anchors.margins: 2
-            spacing: 0
+            anchors.leftMargin: 10
+            anchors.rightMargin: editPencil.visible ? 0 : 10
+            spacing: 8
 
-            //  .-------------------------.
-            //  | .---------------------. |
-            //  | |    Profile List     | |
-            //  | `---------------------' |
-            //  `-------------------------'
-
-            ListView {
-                id: profileList
+            // Profile name
+            Text {
+                text: profileCard.title
+                font.pixelSize: 14
+                color: profileCard.selected ? Theme.green : Theme.text
                 Layout.fillWidth: true
-                Layout.fillHeight: true
-                clip: true
-
-                model: root.profiles
-
-                // Profile card
-                delegate: Rectangle {
-                    id: profileCard
-                    required property string modelData
-                    required property int index
-
-                    width: ListView.view.width
-                    height: 40
-                    radius: 8
-                    color: delegateHover.pressed ? Theme.surface1 : delegateHover.containsMouse ? Theme.surface0 : "transparent"
-
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: 16
-                        anchors.rightMargin: 12
-                        spacing: 8
-
-                        Text {
-                            text: profileCard.modelData
-                            font.pixelSize: 14
-                            color: profileCard.modelData === root.currentProfile ? Theme.green : Theme.text
-                            Layout.fillWidth: true
-                        }
-
-                        SvgIcon {
-                            visible: profileCard.modelData === root.currentProfile
-                            icon: "player-play"
-                            size: 16
-                            color: Theme.green
-                        }
-                    }
-
-                    MouseArea {
-                        id: delegateHover
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            ProfileModel.currentProfile = profileCard.modelData
-                            root.profileSelected(profileCard.modelData)
-                            root.actived = false
-                        }
-                    }
-                }
             }
 
-            // separator
-            Rectangle {
-                Layout.fillWidth: true
-                height: 1
-                color: Theme.base
-            }
-
-            //  .-------------------------.
-            //  | .---------------------. |
-            //  | |Create profile button| |
-            //  | `---------------------' |
-            //  `-------------------------'
-
-            IconTextButton {
-                Layout.fillWidth: true
-                text: "Create new profile"
-                size: 35
-                onClicked: {
-                    ProfileModel.createProfile()
-                    root.createProfile()
-                }
+            // Edit profile button
+            IconButton {
+                id: editPencil
+                visible: profileCard.selected
+                icon: "pencil"
+                size: parent.height
+                iconColor: Theme.surface2
+                bgColor: "transparent"
+                radius: profileCard.radius
+                onClicked: DialogController.editProfile.open({ "profile": profileCard.profileId })
             }
         }
     }

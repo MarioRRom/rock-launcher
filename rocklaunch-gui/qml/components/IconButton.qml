@@ -29,6 +29,7 @@ Rectangle {
     property bool actived: false
     property string icon: ""
     property int size: 48
+    property int iconMargin: 16
     property int borderRadius: 12
 
     // Normal colors
@@ -62,7 +63,7 @@ Rectangle {
     SvgIcon {
         anchors.centerIn: parent
         icon: root.icon
-        size: root.size - 16
+        size: root.size - root.iconMargin
         color: root.actived ? root.iconColorActive : root.iconColor
     }
 

@@ -47,7 +47,7 @@ Nothing outside the core implements game detection, runner handling, patching, o
 
 ## Config (JSON)
 
-Per-installation configuration lives in `profiles/<profile_id>.json` (game ID, install path, runner, patches). Launcher-wide settings live in `config.json`. Keep keys descriptive and predictable; new settings are exposed through the CLI first.
+Per-installation configuration lives in `profiles/<profile_id>.json` (name tag, game ID, install path, runner, patches). The profile ID is generated and never changes; `name` is the optional tag the user gives it. Launcher-wide settings live in `config.json`. Keep keys descriptive and predictable; new settings are exposed through the CLI first.
 
 ---
 
@@ -122,7 +122,6 @@ For compact or minor sections, use a simple separator with a blank line above:
 
 ## Qt / QML Style
 
-<<<<<<< HEAD
 ### Project Structure
 
 ```
@@ -245,6 +244,3 @@ visible: root.currentPage === "launch"
 // Set visible to true or false
 visible: root.currentPage === "launch"
 ```
-=======
-Per-installation configuration lives in `profiles/<profile_id>.json` (name tag, game ID, install path, runner, patches). The profile ID is generated and never changes; `name` is the optional tag the user gives it. Launcher-wide settings live in `config.json`. Keep keys descriptive and predictable; new settings are exposed through the CLI first.
->>>>>>> main

@@ -101,4 +101,16 @@ Window {
             }
         }
     }
+
+    //  .-------------------------.
+    //  | .---------------------. |
+    //  | |    Overlay Layer    | |
+    //  | `---------------------' |
+    //  `-------------------------'
+
+    // Dialogs is the overlay layer, above everything else.
+    Dialogs {
+        anchors.fill: parent
+        z: 50 // above the layout content
+    }
 }

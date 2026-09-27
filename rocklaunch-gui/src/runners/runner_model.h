@@ -7,8 +7,6 @@
 #include <QtQml/qqmlregistration.h>
 #include <QQmlEngine>
 
-class ProfileModel;
-
 class RunnerModel final : public QObject
 {
     Q_OBJECT
@@ -18,7 +16,7 @@ class RunnerModel final : public QObject
     Q_PROPERTY(QString currentRunner READ currentRunner WRITE setCurrentRunner NOTIFY currentRunnerChanged)
 
 public:
-    explicit RunnerModel(QObject *parent);
+    explicit RunnerModel(rocklaunch::RunnerManager *manager, QObject *parent = nullptr);
 
     static RunnerModel *create(QQmlEngine *qmlEngine, QJSEngine *jsEngine)
     {
@@ -34,8 +32,6 @@ public:
         s_instance = instance;
     }
 
-    void SetProfileModel(ProfileModel *model);
-
     QStringList runners() const;
     QString currentRunner() const;
     void setCurrentRunner(const QString &id);
@@ -47,8 +43,8 @@ signals:
     void currentRunnerChanged();
 
 private:
-    ProfileModel *m_profileModel = nullptr;
-    rocklaunch::RunnerManager m_runnerManager;
+    // Shared with LaunchController: one discovery pass.
+    rocklaunch::RunnerManager *m_runnerManager = nullptr;
     QStringList m_runners;
     QString m_currentRunner;
     inline static RunnerModel *s_instance = nullptr;

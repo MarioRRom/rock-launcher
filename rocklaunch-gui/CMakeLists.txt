@@ -26,10 +26,13 @@ qt_add_qml_module(rocklaunch-gui
         src/utils/qt_process_handle.cpp
         src/utils/theme.h
         src/utils/theme.cpp
+        src/utils/dialog_controller.h
+        src/utils/dialog_controller.cpp
     QML_FILES
         qml/Main.qml
     QML_FILES
         qml/layout/Content.qml
+        qml/layout/Dialogs.qml
         qml/layout/TopBar.qml
         qml/layout/SideBar.qml
         qml/contents/launch/Launch.qml
@@ -40,8 +43,10 @@ qt_add_qml_module(rocklaunch-gui
         qml/components/IconButton.qml
         qml/components/TextBadge.qml
         qml/components/IconTextButton.qml
+        qml/components/ExpandableList.qml
         qml/components/GameProfileButton.qml
         qml/components/SvgIcon.qml
+        qml/dialogs/EditProfile.qml
     RESOURCES
         qml/assets/LOGO.png
         qml/assets/icons/device-gamepad.svg
@@ -55,6 +60,12 @@ qt_add_qml_module(rocklaunch-gui
         qml/assets/icons/trash.svg
         qml/assets/icons/cachyos.svg
         qml/assets/icons/search.svg
+        qml/assets/icons/pencil.svg
+        qml/assets/icons/plus.svg
+        qml/assets/icons/folder.svg
+        qml/assets/icons/steam.svg
+        qml/assets/icons/device-floppy.svg
+        qml/assets/icons/x.svg
         qml/assets/LOGO/rock2014logo.png
         qml/assets/LOGO/rockpluslogo.png
 )

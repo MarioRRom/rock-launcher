@@ -19,7 +19,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Effects
 
 // Config
 import "../../components"
@@ -36,13 +35,11 @@ Rectangle {
     property color accentPressedColor: Qt.darker(accentColor, 1.16)
     property string label: "LAUNCH"
 
-    // States are driven by the LaunchController state machine.
-    // Idle=0, PreparingPrefix=1, Starting=2, Running=3, Finished=4, Error=5.
     // Only the accent changes; hover/pressed derive from it via Qt.darker.
     states: [
         State {
             name: "preparing"
-            when: LaunchController.launchState === 1
+            when: LaunchController.launchState === LaunchState.PreparingPrefix
             PropertyChanges {
                 target: root
                 label: "PREPARING"
@@ -51,7 +48,7 @@ Rectangle {
         },
         State {
             name: "starting"
-            when: LaunchController.launchState === 2
+            when: LaunchController.launchState === LaunchState.Starting
             PropertyChanges {
                 target: root
                 label: "LAUNCHING"
@@ -60,7 +57,7 @@ Rectangle {
         },
         State {
             name: "running"
-            when: LaunchController.launchState === 3
+            when: LaunchController.launchState === LaunchState.Running
             PropertyChanges {
                 target: root
                 label: "STOP"

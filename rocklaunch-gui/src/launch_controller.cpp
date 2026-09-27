@@ -5,9 +5,14 @@
 
 #include <QDebug>
 
-LaunchController::LaunchController(QObject *parent)
+LaunchController::LaunchController(rocklaunch::ProfileManager *manager,
+                                   ProfileModel *profileModel,
+                                   rocklaunch::RunnerManager *runners,
+                                   QObject *parent)
     : QObject(parent)
-    , m_runnerManager(rocklaunch::RunnerManager::CreateDefault())
+    , m_profiles(manager)
+    , m_profileModel(profileModel)
+    , m_runners(runners)
     , m_session([this](rocklaunch::SessionState, const std::string &detail) {
         m_statusDetail = QString::fromStdString(detail);
         emit launchStateChanged();
@@ -32,16 +37,6 @@ LaunchController::LaunchController(QObject *parent)
             m_session.Kill();
         }
     });
-}
-
-void LaunchController::SetProfileManager(rocklaunch::ProfileManager *manager)
-{
-    m_profiles = manager;
-}
-
-void LaunchController::SetProfileModel(ProfileModel *model)
-{
-    m_profileModel = model;
 }
 
 int LaunchController::launchState() const
@@ -70,7 +65,7 @@ void LaunchController::launch()
 
 void LaunchController::StartLaunch()
 {
-    if (!m_profiles || !m_profileModel) {
+    if (!m_profiles || !m_profileModel || !m_runners) {
         emit launchError("Controller not initialized");
         return;
     }
@@ -89,7 +84,7 @@ void LaunchController::StartLaunch()
 
     // Pre-flight checks are core business rules shared with the CLI.
     const rocklaunch::ProfileValidation validation =
-        m_profiles->ValidateProfile(profileId.toStdString(), m_runnerManager);
+        m_profiles->ValidateProfile(profileId.toStdString(), *m_runners);
     if (!validation.isValid) {
         QString detail;
         for (const rocklaunch::ValidationIssue &issue : validation.issues) {
@@ -109,7 +104,7 @@ void LaunchController::StartLaunch()
         return;
     }
     m_pendingProfile = *profile;
-    m_pendingRunner = m_runnerManager.Find(m_pendingProfile.runnerId);
+    m_pendingRunner = m_runners->Find(m_pendingProfile.runnerId);
     if (!m_pendingRunner.has_value()) {
         emit launchError("Runner not found: " + QString::fromStdString(m_pendingProfile.runnerId));
         return;
