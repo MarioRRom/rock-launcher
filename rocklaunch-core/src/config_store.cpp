@@ -137,6 +137,7 @@ ProfileConfig ConfigStore::LoadProfile(const std::string &profileId) const
 
     ProfileConfig profile;
     profile.id = json.at("id").get<std::string>();
+    profile.name = json.value("name", "");
     profile.gameId = json.value("game_id", "rocksmith2014remastered");
     profile.installDir = json.value("install_dir", "");
     profile.runnerId = json.value("runner_id", "");
@@ -175,6 +176,7 @@ void ConfigStore::SaveProfile(const ProfileConfig &profile) const
 
     nlohmann::json json = {
         { "id", profile.id },
+        { "name", profile.name },
         { "game_id", profile.gameId },
         { "install_dir", profile.installDir.string() },
         { "runner_id", profile.runnerId },

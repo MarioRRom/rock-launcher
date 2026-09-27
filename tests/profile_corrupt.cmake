@@ -29,14 +29,14 @@ RunCli(0 profile new steam)
 
 # A profile whose JSON can no longer be parsed must degrade to logged errors on
 # every read path (never an uncaught exception), and stay deletable.
-file(WRITE "${TEST_ROOT}/data/rocksmith-launcher/profiles/steam.json" "{ not valid json !!!")
+file(WRITE "${TEST_ROOT}/data/rocksmith-launcher/profiles/rocksmith2014remastered-1.json" "{ not valid json !!!")
 
-RunCli(1 profile show steam)
+RunCli(1 profile show rocksmith2014remastered-1)
 if (NOT LAST_OUTPUT MATCHES "could not be read")
     message(FATAL_ERROR "Corrupt profile read was not reported as a logged error")
 endif()
 
-RunCli(1 launch steam)
+RunCli(1 launch rocksmith2014remastered-1)
 if (NOT LAST_OUTPUT MATCHES "could not be read")
     message(FATAL_ERROR "Corrupt profile launch was not reported as a logged error")
 endif()
@@ -46,8 +46,8 @@ if (NOT LAST_OUTPUT MATCHES "skipping unreadable profile")
     message(FATAL_ERROR "Corrupt profile was not skipped during listing")
 endif()
 
-RunCli(0 profile remove -f steam)
-RunCli(1 profile show steam)
-if (NOT LAST_OUTPUT MATCHES "Profile not found: steam")
+RunCli(0 profile remove -f rocksmith2014remastered-1)
+RunCli(1 profile show rocksmith2014remastered-1)
+if (NOT LAST_OUTPUT MATCHES "Profile not found: rocksmith2014remastered-1")
     message(FATAL_ERROR "Corrupt profile could not be removed")
 endif()

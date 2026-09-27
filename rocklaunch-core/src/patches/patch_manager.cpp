@@ -82,7 +82,7 @@ bool PatchManager::Enable(const std::string &profileId,
 
     if (profile->installDir.empty()) {
         error = "Profile " + profileId + " has no install path. "
-                "Use set-path <profile> <path> before applying patches.";
+                "Use set-path <profile_id> <path> before applying patches.";
         return false;
     }
 

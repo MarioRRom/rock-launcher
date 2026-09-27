@@ -14,7 +14,8 @@ namespace rocklaunch
 namespace
 {
 
-// First unused "<gameId>-<n>" name so bare `profile new` keeps creating distinct profiles.
+// The only source of profile ids: the first unused "<gameId>-<n>", so two
+// profiles can never share one.
 std::string NextDefaultProfileId(const std::string &gameId, const ConfigStore &store)
 {
     for (int index = 1;; ++index) {
@@ -23,6 +24,15 @@ std::string NextDefaultProfileId(const std::string &gameId, const ConfigStore &s
             return candidate;
         }
     }
+}
+
+// Reports why a name was refused. Separate from NameValid() because a form calls
+// that one on every keystroke and must not write to the log.
+void LogInvalidName(const std::string &name)
+{
+    Logger logger;
+    logger.Error("ProfileManager: Profile names may not contain quotes or control "
+                 "characters (got: " + name + ")");
 }
 
 } // namespace
@@ -78,36 +88,57 @@ std::optional<ProfileConfig> ProfileManager::GetProfile(const std::string &id) c
     }
 }
 
-std::optional<ProfileConfig>
-ProfileManager::CreateDefaultProfile(const std::string &preferredId)
+bool ProfileManager::NameValid(const std::string &name)
 {
-    const std::string gameId = m_gameProfile.Id();
-    const std::string profileId = preferredId.empty()
-        ? NextDefaultProfileId(gameId, m_store)
-        : preferredId;
-
-    // Reject ids that could never exist before touching the store, so a GUI user
-    // typing an invalid name gets a logged error instead of an exception.
-    if (!m_store.ProfileIdValid(profileId)) {
-        Logger logger;
-        logger.Error("ProfileManager: Profile ids may contain only lowercase letters, "
-                     "numbers, hyphens, and underscores (got: " + profileId + ")");
-        return std::nullopt;
+    // A name is only ever shown as `<id> "<name>"`, so quotes and control
+    // characters are rejected instead of escaped. UTF-8 passes through untouched.
+    for (char character : name) {
+        unsigned char byte = static_cast<unsigned char>(character);
+        if (byte < 0x20 || byte == 0x7f || character == '"') {
+            return false;
+        }
     }
+    return true;
+}
 
-    if (m_store.ProfileExists(profileId)) {
-        Logger logger;
-        logger.Error("ProfileManager: Profile already exists: " + profileId);
+std::string ProfileManager::PreviewNextId() const
+{
+    return NextDefaultProfileId(m_gameProfile.Id(), m_store);
+}
+
+std::optional<ProfileConfig> ProfileManager::CreateProfile(const std::string &name)
+{
+    if (!NameValid(name)) {
+        LogInvalidName(name);
         return std::nullopt;
     }
 
     ProfileConfig config;
-    config.id = profileId;
-    config.gameId = gameId;
-    config.prefixDir = m_store.DataDir() / "prefixes" / profileId;
+    config.id = PreviewNextId();
+    config.name = name;
+    config.gameId = m_gameProfile.Id();
+    config.prefixDir = m_store.DataDir() / "prefixes" / config.id;
     m_store.SaveProfile(config);
 
     return config;
+}
+
+bool ProfileManager::SetName(const std::string &id, const std::string &name)
+{
+    std::optional<ProfileConfig> profile = GetProfile(id);
+    if (!profile.has_value()) {
+        return false;
+    }
+
+    if (!NameValid(name)) {
+        LogInvalidName(name);
+        return false;
+    }
+
+    profile->name = name;
+    m_store.SaveProfile(*profile);
+
+    return true;
 }
 
 bool ProfileManager::DeleteProfile(const std::string &id)
@@ -206,10 +237,10 @@ ProfileValidation ProfileManager::ValidateProfile(const std::string &id,
                  + ", which this build does not support.");
     } else if (profile->installDir.empty()) {
         addError("Profile " + id + " has no install path. "
-                 "Use set-path <profile> <path> first.");
+                 "Use set-path <profile_id> <path> first.");
     } else if (profile->runnerId.empty()) {
         addError("Profile " + id + " has no runner. "
-                 "Use runner set <profile> <runner> first.");
+                 "Use runner set <profile_id> <runner> first.");
     } else if (!runners.Find(profile->runnerId).has_value()) {
         addError("Runner not found: " + profile->runnerId);
     }

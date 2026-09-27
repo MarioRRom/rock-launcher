@@ -49,11 +49,11 @@ if (BUILD_TESTING)
     )
 
     add_test(
-        NAME rocklaunch-cli-profile-duplicate
+        NAME rocklaunch-cli-profile-name
         COMMAND ${CMAKE_COMMAND}
             -DROCKLAUNCH_CLI=$<TARGET_FILE:rocklaunch-cli>
-            -DTEST_ROOT=${CMAKE_BINARY_DIR}/profile-duplicate-test
-            -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/profile_duplicate.cmake
+            -DTEST_ROOT=${CMAKE_BINARY_DIR}/profile-name-test
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/profile_name.cmake
     )
 
     add_test(
@@ -78,6 +78,19 @@ if (BUILD_TESTING)
             -DROCKLAUNCH_CLI=$<TARGET_FILE:rocklaunch-cli>
             -DTEST_ROOT=${CMAKE_BINARY_DIR}/launch-test
             -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch.cmake
+    )
+
+    # Core ProfileManager naming rules: PreviewNextId()/NameValid() back the
+    # profile form and have no CLI surface, so they are exercised as a core unit
+    # test binary, like LaunchSession.
+    add_executable(rocklaunch-core-profile-manager-test
+        rocklaunch-core/tests/profile_manager_test.cpp
+    )
+    target_link_libraries(rocklaunch-core-profile-manager-test PRIVATE rocklaunch::core)
+    add_test(
+        NAME rocklaunch-core-profile-manager
+        COMMAND rocklaunch-core-profile-manager-test
+            ${CMAKE_BINARY_DIR}/profile-manager-test
     )
 
     # Core LaunchSession tests: the session has no CLI surface (the CLI keeps
