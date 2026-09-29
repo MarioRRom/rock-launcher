@@ -41,12 +41,13 @@ does the rest.
 
 ## Prerequisites
 
-**Build:** CMake, C++17 compiler, OpenSSL, zlib,
+**Build:** CMake, C++17 compiler, OpenSSL, zlib, libcurl ≥ 7.85
+(`libcurl4-openssl-devel` / `libcurl-devel`),
 [nlohmann/json](https://github.com/nlohmann/json) (fetched automatically).
 
 **Runtime:** `7z` ([p7zip](https://p7zip.sourceforge.net/)) —
 `sudo apt install p7zip-full` / `sudo pacman -S p7zip`.
-`curl` and `tar` — usually pre-installed on Linux.
+`tar` — usually pre-installed on Linux.
 
 ## Building
 

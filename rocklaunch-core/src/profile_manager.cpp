@@ -3,7 +3,7 @@
 #include "rocklaunch/core/game_profile.h"
 #include "rocklaunch/core/logger.h"
 #include "rocklaunch/core/manual_source.h"
-#include "rocklaunch/core/runners/runner_manager.h"
+#include "rocklaunch/core/runners/runners.h"
 
 #include <exception>
 #include <stdexcept>
@@ -192,28 +192,28 @@ std::optional<fs::path> ProfileManager::SetInstallPath(const std::string &id, co
     return installDir;
 }
 
-bool ProfileManager::SetRunner(const std::string &id, const std::string &runnerId,
-                               const RunnerManager &runners)
+bool ProfileManager::SetRunner(const std::string &id, const std::string &name,
+                               const std::string &source)
 {
     std::optional<ProfileConfig> profile = GetProfile(id);
     if (!profile.has_value()) {
         return false;
     }
 
-    if (!runners.Find(runnerId).has_value()) {
+    if (!Runners::Find(name, source).has_value()) {
         Logger logger;
-        logger.Error("ProfileManager: Runner not found: " + runnerId);
+        logger.Error("ProfileManager: Runner not installed: " + source + "/" + name);
         return false;
     }
 
-    profile->runnerId = runnerId;
+    profile->runnerName = name;
+    profile->runnerSource = source;
     m_store.SaveProfile(*profile);
 
     return true;
 }
 
-ProfileValidation ProfileManager::ValidateProfile(const std::string &id,
-                                                  const RunnerManager &runners) const
+ProfileValidation ProfileManager::ValidateProfile(const std::string &id) const
 {
     std::optional<ProfileConfig> profile = GetProfile(id);
     if (!profile.has_value()) {
@@ -238,11 +238,11 @@ ProfileValidation ProfileManager::ValidateProfile(const std::string &id,
     } else if (profile->installDir.empty()) {
         addError("Profile " + id + " has no install path. "
                  "Use set-path <profile_id> <path> first.");
-    } else if (profile->runnerId.empty()) {
+    } else if (profile->runnerName.empty() || profile->runnerSource.empty()) {
         addError("Profile " + id + " has no runner. "
-                 "Use runner set <profile_id> <runner> first.");
-    } else if (!runners.Find(profile->runnerId).has_value()) {
-        addError("Runner not found: " + profile->runnerId);
+                 "Use runner set <profile_id> <source>/<name> first.");
+    } else if (!Runners::Find(profile->runnerName, profile->runnerSource).has_value()) {
+        addError("Runner not installed: " + profile->runnerSource + "/" + profile->runnerName);
     }
 
     return validation;

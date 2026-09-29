@@ -14,6 +14,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(OpenSSL REQUIRED)
 find_package(ZLIB REQUIRED)
+find_package(CURL 7.85 REQUIRED)
 find_package(nlohmann_json 3.11 QUIET)
 
 if (NOT nlohmann_json_FOUND)
@@ -63,6 +64,8 @@ if (BUILD_TESTING)
             -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/profile_corrupt.cmake
     )
 
+    # The script empties PATH itself: the host's system wine must not appear in
+    # `runner list` or the row assertions stop being about the fixtures.
     add_test(
         NAME rocklaunch-cli-runner-manager
         COMMAND ${CMAKE_COMMAND}
@@ -71,12 +74,17 @@ if (BUILD_TESTING)
             -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/runner_manager.cmake
     )
 
+    # PATH is emptied: a wine on the host would show up in `runner list` and the
+    # fixture rows would no longer be the only ones the script can see.
     add_test(
         NAME rocklaunch-cli-launch
         COMMAND ${CMAKE_COMMAND}
             -DROCKLAUNCH_CLI=$<TARGET_FILE:rocklaunch-cli>
             -DTEST_ROOT=${CMAKE_BINARY_DIR}/launch-test
             -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch.cmake
+    )
+    set_tests_properties(rocklaunch-cli-launch PROPERTIES
+        ENVIRONMENT "PATH=/nonexistent"
     )
 
     # Core ProfileManager naming rules: PreviewNextId()/NameValid() back the
@@ -102,5 +110,42 @@ if (BUILD_TESTING)
         NAME rocklaunch-core-launch-session
         COMMAND rocklaunch-core-launch-session-test
             ${CMAKE_BINARY_DIR}/launch-session-test
+    )
+
+    # Progress and cancellation have no CLI surface. libcurl's FILE protocol
+    # drives the same code path without a network.
+    add_executable(rocklaunch-core-downloader-test
+        rocklaunch-core/tests/downloader_test.cpp
+    )
+    target_link_libraries(rocklaunch-core-downloader-test PRIVATE rocklaunch::core)
+    add_test(
+        NAME rocklaunch-core-downloader
+        COMMAND rocklaunch-core-downloader-test
+            ${CMAKE_BINARY_DIR}/downloader-test
+    )
+
+    # The installed scan across its three origins, the (source, name) lookup, and
+    # install/remove incl. hash failure, stage cancel, lock and scratch sweep. The
+    # tarballs are served over file://, so no test touches the network.
+    add_executable(rocklaunch-core-runners-test
+        rocklaunch-core/tests/runners_test.cpp
+    )
+    target_link_libraries(rocklaunch-core-runners-test PRIVATE rocklaunch::core)
+    add_test(
+        NAME rocklaunch-core-runners
+        COMMAND rocklaunch-core-runners-test
+            ${CMAKE_BINARY_DIR}/runners-test
+    )
+
+    # PathLock and RequirePathComponent have no CLI surface. The lock test forks a
+    # child: release on holder death cannot be observed from one process.
+    add_executable(rocklaunch-core-file-lock-test
+        rocklaunch-core/tests/file_lock_test.cpp
+    )
+    target_link_libraries(rocklaunch-core-file-lock-test PRIVATE rocklaunch::core)
+    add_test(
+        NAME rocklaunch-core-file-lock
+        COMMAND rocklaunch-core-file-lock-test
+            ${CMAKE_BINARY_DIR}/file-lock-test
     )
 endif()

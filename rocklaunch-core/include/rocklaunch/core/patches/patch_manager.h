@@ -12,7 +12,7 @@ namespace rocklaunch
 
 // Owns the known patches and applies them to profiles. Every operation first
 // verifies that the patch belongs to the profile's game before touching the
-// install or prefix (mirrors RunnerManager's role for runners).
+// install or prefix.
 class PatchManager
 {
 public:

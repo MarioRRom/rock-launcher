@@ -53,7 +53,7 @@ if (NOT LAST_OUTPUT MATCHES "runner set")
 endif()
 
 # With a runner the launch prepares the prefix and runs the game process.
-RunCli(0 runner set rocksmith2014remastered-1 steam-proton-ge-proton-test)
+RunCli(0 runner set rocksmith2014remastered-1 "steam/GE-Proton Test")
 RunCli(0 launch rocksmith2014remastered-1)
 if (NOT EXISTS "${TEST_ROOT}/data/rocksmith-launcher/prefixes/rocksmith2014remastered-1")
     message(FATAL_ERROR "The launch did not create the profile prefix")

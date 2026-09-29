@@ -61,26 +61,11 @@ void DownloadEnabler()
     Logger logger;
     logger.Info("CDLCPatch: downloading enabler from " + std::string(kEnablerRepo));
 
-    fs::create_directories(CacheDir());
-
-    // Download to a temp file first, then rename — avoids corrupt cache on
-    // interrupted downloads.
-    fs::path tmpPath = CachedDll();
-    tmpPath += ".tmp";
-
-    // The DLL lives in the repo tree, not in a GitHub release — fetch the raw
-    // file directly from GitHub's raw content endpoint.
+    // The DLL lives in the repo tree, not in a GitHub release. Fetch's own
+    // temp file is what keeps an interrupted download out of the cache.
     std::string rawUrl = "https://raw.githubusercontent.com/" + std::string(kEnablerRepo)
                          + "/master/" + kEnablerPath;
-    Downloader::Fetch(rawUrl, tmpPath);
-
-    std::error_code ec;
-    fs::rename(tmpPath, CachedDll(), ec);
-    if (ec) {
-        logger.Error("CDLCPatch: failed to finalize cached enabler");
-        throw std::runtime_error("Failed to finalize cached enabler: "
-                                 + ec.message());
-    }
+    Downloader::Fetch(rawUrl, CachedDll());
 
     logger.Debug("CDLCPatch: enabler cached at " + CachedDll().string());
 }

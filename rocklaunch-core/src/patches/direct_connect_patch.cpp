@@ -276,7 +276,10 @@ bool PatchCachePsarc(const fs::path &gameCache, bool patchDirection)
     fs::path cache7z = psarcTmp / "cache7.7z";
     if (!fs::exists(cache7z)) {
         logger.Error("DirectConnectPatch: cache7.7z not found in extracted PSARC");
-        throw std::runtime_error("cache7.7z not found");
+        throw std::runtime_error(
+            "cache7.7z not found in the extracted PSARC"
+            "\n  looked in " + psarcTmp.string()
+            + "\n  the archive is not a Direct Connect release, or it is incomplete");
     }
 
     RunSubprocess({"7z", "x", cache7z.string(),
@@ -384,7 +387,10 @@ void DirectConnectPatch::Apply(const ProfileConfig &profile, bool force) const
     fs::path gameCache = profile.installDir / "cache.psarc";
     if (!fs::exists(gameCache)) {
         logger.Error("DirectConnectPatch: cache.psarc not found at " + gameCache.string());
-        throw std::runtime_error("cache.psarc not found");
+        throw std::runtime_error(
+            "cache.psarc not found at " + gameCache.string()
+            + "\n  the game has not been run yet, or its data folder is incomplete"
+            + "\n  run the game once, then retry the patch");
     }
 
     PatchCachePsarc(gameCache, true);
@@ -408,7 +414,10 @@ void DirectConnectPatch::Remove(const ProfileConfig &profile) const
     fs::path gameCache = profile.installDir / "cache.psarc";
     if (!fs::exists(gameCache)) {
         logger.Error("DirectConnectPatch: cache.psarc not found at " + gameCache.string());
-        throw std::runtime_error("cache.psarc not found");
+        throw std::runtime_error(
+            "cache.psarc not found at " + gameCache.string()
+            + "\n  the game has not been run yet, or its data folder is incomplete"
+            + "\n  run the game once, then retry the patch");
     }
 
     PatchCachePsarc(gameCache, false);

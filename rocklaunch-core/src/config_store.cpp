@@ -140,7 +140,8 @@ ProfileConfig ConfigStore::LoadProfile(const std::string &profileId) const
     profile.name = json.value("name", "");
     profile.gameId = json.value("game_id", "rocksmith2014remastered");
     profile.installDir = json.value("install_dir", "");
-    profile.runnerId = json.value("runner_id", "");
+    profile.runnerName = json.value("runner_name", "");
+    profile.runnerSource = json.value("runner_source", "");
     profile.prefixDir = json.value("prefix_dir", "");
     if (json.contains("patches") && json["patches"].is_object()) {
         for (const auto &entry : json["patches"].items()) {
@@ -179,7 +180,8 @@ void ConfigStore::SaveProfile(const ProfileConfig &profile) const
         { "name", profile.name },
         { "game_id", profile.gameId },
         { "install_dir", profile.installDir.string() },
-        { "runner_id", profile.runnerId },
+        { "runner_name", profile.runnerName },
+        { "runner_source", profile.runnerSource },
         { "prefix_dir", profile.prefixDir.string() },
         { "patches", patchesJson },
     };

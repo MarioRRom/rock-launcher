@@ -1,8 +1,16 @@
-#include "cli_ui.h"
+#include "rocklaunch/cli/cli_ui.h"
 
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+
+namespace
+{
+
+// Wider than the longest entry, so a usage column never runs into its description.
+constexpr int kUsageColumn = 47;
+
+} // anonymous namespace
 
 bool IsForceFlag(std::string_view arg)
 {
@@ -52,16 +60,16 @@ std::string CommandUsage(const std::string &command, const std::string &sub)
             return "rocklaunch-cli runner list";
         }
         if (sub == "set") {
-            return "rocklaunch-cli runner set <profile_id> <runner_id>";
+            return "rocklaunch-cli runner set <profile_id> <source>/<name>";
         }
         if (sub == "search") {
-            return "rocklaunch-cli runner search <query>";
+            return "rocklaunch-cli runner search [<query>] [-u]";
         }
         if (sub == "install") {
-            return "rocklaunch-cli runner install <name> [<asset>]";
+            return "rocklaunch-cli runner install [-f] <source>/<name> [<file>]";
         }
         if (sub == "remove") {
-            return "rocklaunch-cli runner remove <name>";
+            return "rocklaunch-cli runner remove [-f] <source>/<name>";
         }
         return "rocklaunch-cli runner <COMMAND>";
     }
@@ -94,7 +102,8 @@ std::string CommandUsage(const std::string &command, const std::string &sub)
 
 void PrintUsageEntry(const std::string &command, const std::string &description)
 {
-    std::cout << "    " << std::left << std::setw(40) << command << description << '\n';
+    std::cout << "    " << std::left << std::setw(kUsageColumn) << command << description
+              << '\n';
 }
 
 void PrintUsage()
@@ -113,11 +122,11 @@ void PrintUsage()
     PrintUsageEntry("set-path <profile_id> <path>", "Validate and set the game install path.");
     std::cout << "\nRUNNERS:\n";
     PrintUsageEntry("runner list", "List runners installed on this machine.");
-    PrintUsageEntry("runner set <profile_id> <runner_id>", "Assign a runner to a profile.");
-    PrintUsageEntry("runner search <query>", "Search online runner releases.");
-    PrintUsageEntry("runner install <name> [<asset>]",
-                    "Install a runner; picks the right file, or you specify one.");
-    PrintUsageEntry("runner remove <name>", "Remove an installed runner.");
+    PrintUsageEntry("runner set <profile_id> <source>/<name>", "Assign a runner to a profile.");
+    PrintUsageEntry("runner search [<query>]", "Browse the release list; -u refreshes it.");
+    PrintUsageEntry("runner install [-f] <source>/<name> [<file>]",
+                    "Install a runner; picks the right file, or you name one.");
+    PrintUsageEntry("runner remove [-f] <source>/<name>", "Remove an installed runner.");
     std::cout << "\nPATCHES:\n";
     PrintUsageEntry("patch list", "List all available patches.");
     PrintUsageEntry("patch list <profile_id>", "List patches for a profile.");
@@ -148,6 +157,17 @@ void PrintError(const std::string &message)
     std::cerr << Color(message, "31") << '\n';
 }
 
+bool ConfirmDestructive(const std::string &what)
+{
+    std::cout << what << " [y/N] ";
+    std::cout.flush();
+
+    std::string answer;
+    std::getline(std::cin, answer);
+    return answer == "y" || answer == "Y" || answer == "yes" || answer == "Yes"
+        || answer == "YES";
+}
+
 void PrintUsageError(const std::string &message,
                      const std::string &command,
                      const std::string &subcommand)
@@ -171,10 +191,4 @@ std::string HumanSize(uint64_t bytes)
     std::ostringstream out;
     out << std::fixed << std::setprecision(1) << value << ' ' << kUnits[unit];
     return out.str();
-}
-
-std::string RepoShortName(const std::string &repo)
-{
-    std::size_t slash = repo.find_last_of('/');
-    return slash == std::string::npos ? repo : repo.substr(slash + 1);
 }

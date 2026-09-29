@@ -7,7 +7,6 @@
 #include "rocklaunch/core/launch.h"
 #include "rocklaunch/core/launch_session.h"
 
-#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -270,8 +269,8 @@ void TestBuildPrefixCommands(const fs::path &testRoot)
     fs::create_directories(wineDir);
     WriteScript(wineDir / "wine", "#!/bin/sh\nexit 0\n");
 
-    rocklaunch::Runner wineRunner;
-    wineRunner.type = rocklaunch::RunnerType::Wine;
+    rocklaunch::RunnerRef wineRunner;
+    wineRunner.kind = rocklaunch::kRunnerKindWine;
     wineRunner.executable = wineDir / "wine";
 
     std::vector<rocklaunch::LaunchCommand> commands =
@@ -294,8 +293,8 @@ void TestBuildPrefixCommands(const fs::path &testRoot)
     fs::create_directories(protonDir / "files" / "bin");
     WriteScript(protonDir / "files" / "bin" / "wine", "#!/bin/sh\nexit 0\n");
 
-    rocklaunch::Runner protonRunner;
-    protonRunner.type = rocklaunch::RunnerType::Proton;
+    rocklaunch::RunnerRef protonRunner;
+    protonRunner.kind = rocklaunch::kRunnerKindProton;
     protonRunner.rootDir = protonDir;
 
     std::vector<rocklaunch::LaunchCommand> protonCommands =
@@ -306,8 +305,8 @@ void TestBuildPrefixCommands(const fs::path &testRoot)
           "proton uses the pfx subdirectory");
 
     // Missing wine binary -> no commands.
-    rocklaunch::Runner emptyRunner;
-    emptyRunner.type = rocklaunch::RunnerType::Wine;
+    rocklaunch::RunnerRef emptyRunner;
+    emptyRunner.kind = rocklaunch::kRunnerKindWine;
     emptyRunner.executable = testRoot / "missing" / "wine";
     Check(rocklaunch::BuildPrefixCommands(testRoot / "prefix-empty", emptyRunner).empty(),
           "no commands without wine binary");
@@ -321,8 +320,8 @@ void TestBuildWineKillCommand(const fs::path &testRoot)
     WriteScript(wineDir / "wine", "#!/bin/sh\nexit 0\n");
     WriteScript(wineDir / "wineserver", "#!/bin/sh\nexit 0\n");
 
-    rocklaunch::Runner wineRunner;
-    wineRunner.type = rocklaunch::RunnerType::Wine;
+    rocklaunch::RunnerRef wineRunner;
+    wineRunner.kind = rocklaunch::kRunnerKindWine;
     wineRunner.executable = wineDir / "wine";
 
     std::optional<rocklaunch::LaunchCommand> killCommand =
@@ -340,8 +339,8 @@ void TestBuildWineKillCommand(const fs::path &testRoot)
     fs::create_directories(protonDir / "files" / "bin");
     WriteScript(protonDir / "files" / "bin" / "wineserver", "#!/bin/sh\nexit 0\n");
 
-    rocklaunch::Runner protonRunner;
-    protonRunner.type = rocklaunch::RunnerType::Proton;
+    rocklaunch::RunnerRef protonRunner;
+    protonRunner.kind = rocklaunch::kRunnerKindProton;
     protonRunner.rootDir = protonDir;
     protonRunner.executable = protonDir / "proton";
 
@@ -355,8 +354,8 @@ void TestBuildWineKillCommand(const fs::path &testRoot)
     }
 
     // No wineserver anywhere -> nullopt.
-    rocklaunch::Runner bareRunner;
-    bareRunner.type = rocklaunch::RunnerType::Wine;
+    rocklaunch::RunnerRef bareRunner;
+    bareRunner.kind = rocklaunch::kRunnerKindWine;
     bareRunner.executable = testRoot / "missing-kill" / "wine";
     Check(!rocklaunch::BuildWineKillCommand(testRoot / "prefix-bare", bareRunner).has_value(),
           "no kill command without wineserver");
@@ -370,8 +369,8 @@ void TestEnsurePrefix(const fs::path &testRoot)
     fs::create_directories(runnerDir);
     WriteScript(runnerDir / "wine", "#!/bin/sh\nexit 0\n");
 
-    rocklaunch::Runner wineRunner;
-    wineRunner.type = rocklaunch::RunnerType::Wine;
+    rocklaunch::RunnerRef wineRunner;
+    wineRunner.kind = rocklaunch::kRunnerKindWine;
     wineRunner.executable = runnerDir / "wine";
 
     fs::path prefix = testRoot / "prefix-ensure";
@@ -384,8 +383,8 @@ void TestEnsurePrefix(const fs::path &testRoot)
     fs::create_directories(failingDir);
     WriteScript(failingDir / "wine", "#!/bin/sh\nexit 1\n");
 
-    rocklaunch::Runner failingRunner;
-    failingRunner.type = rocklaunch::RunnerType::Wine;
+    rocklaunch::RunnerRef failingRunner;
+    failingRunner.kind = rocklaunch::kRunnerKindWine;
     failingRunner.executable = failingDir / "wine";
 
     std::vector<std::string> failWarnings =

@@ -11,7 +11,6 @@ namespace rocklaunch
 {
 
 class IGameProfile;
-class RunnerManager;
 
 // A single problem found while validating a profile before use (launch, GUI forms...).
 struct ValidationIssue
@@ -80,11 +79,12 @@ public:
     // Returns the resolved install dir, or nullopt (logged) on any failure.
     std::optional<fs::path> SetInstallPath(const std::string &id, const fs::path &path);
 
-    bool SetRunner(const std::string &id, const std::string &runnerId,
-                   const RunnerManager &runners);
+    // Both name and source are required: a bare name is ambiguous and core never
+    // guesses one. Returns false (logged) when the profile or runner does not exist.
+    bool SetRunner(const std::string &id, const std::string &name,
+                   const std::string &source);
 
-    ProfileValidation ValidateProfile(const std::string &id,
-                                      const RunnerManager &runners) const;
+    ProfileValidation ValidateProfile(const std::string &id) const;
 
 private:
     ConfigStore &m_store;

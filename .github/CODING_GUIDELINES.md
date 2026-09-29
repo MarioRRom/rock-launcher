@@ -23,7 +23,7 @@ Nothing outside the core implements game detection, runner handling, patching, o
 - `IGameProfile` — behavior of a supported game (`Id`, `ValidateInstall`, `RequiredEnv`, `Executable`).
 - `ILaunchPatch` — patch interface (`Id`, `GameId`, `Preset`, `IsEnabled`, `Apply`, `Remove`).
 - `GameSource` — locates the game (`SteamSource`, `ManualSource`). No scattered conditional logic.
-- `IRunnerSource` — discovers local Wine/Proton runners. `RunnerManager` merges sources.
+- `Runners` — release cache, installed scan and install/remove. Returns raw JSON rows, so a frontend never translates between shapes.
 
 **Profiles** (`ProfileConfig`) represent one installation of a game with its own path, runner, prefix, and patch settings. The same install directory cannot belong to more than one profile.
 
@@ -39,6 +39,7 @@ Nothing outside the core implements game detection, runner handling, patching, o
     profiles/<profile_id>.json         profile state (game, runner, patches)
     prefixes/<profile_id>/             WINEPREFIX / STEAM_COMPAT_DATA_PATH
     runners/                           downloaded GE-Proton versions
+    runner_releases.json               release list cache, 24 h TTL
     patches/                           cached downloadable patches
     logs/
 ```

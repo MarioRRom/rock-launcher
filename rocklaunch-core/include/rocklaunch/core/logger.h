@@ -9,6 +9,8 @@ namespace rocklaunch
 namespace fs = std::filesystem;
 
 // File-backed logger. Logging from startup keeps silent failures inside Proton debuggable.
+// Debug is a step to watch on a console and is never persisted, so it leaves no trace
+// once nothing is on a console. Info concluded, Warn odd but continuing, Error stopped.
 class Logger
 {
 public:

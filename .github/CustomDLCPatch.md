@@ -28,7 +28,7 @@ without hitting the network. The `-f` flag forces a fresh download.
 ## Project files
 
 - **[cdlc_patch.cpp](../rocklaunch-core/src/patches/cdlc_patch.cpp)** — patch logic: download, cache, deploy, remove.
-- **[downloader.cpp](../rocklaunch-core/src/utils/downloader.cpp)** — `Fetch()` via `curl` subprocess.
+- **[downloader.cpp](../rocklaunch-core/src/utils/downloader.cpp)** — `Fetch()` over libcurl, in-process. It writes to `<dest>.tmp` and renames, so this patch no longer manages a temp file itself.
 
 ## Thanks
 

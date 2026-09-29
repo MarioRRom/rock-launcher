@@ -1,5 +1,7 @@
 #pragma once
 
+#include "rocklaunch/core/progress.h"
+
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -23,24 +25,21 @@ struct ReleaseInfo
     std::vector<AssetInfo> assets;
 };
 
-// HTTP download and GitHub release utilities. All functions use curl
-// via subprocess — no library dependency beyond curl on PATH.
+// HTTP download and GitHub release utilities, built on libcurl.
 namespace Downloader
 {
 
-// Download a file from url to destPath. Shows curl progress bar.
-// Throws on HTTP error or network failure.
-void Fetch(const std::string &url, const fs::path &destPath);
+// Download url to destPath through destPath + ".tmp", renamed on success.
+// onProgress is optional; returning false cancels.
+// Throws std::runtime_error on HTTP error, network failure or cancellation.
+void Fetch(const std::string &url,
+           const fs::path &destPath,
+           ProgressCallback onProgress = nullptr);
 
 // List releases from a GitHub repo (e.g. "GloriousEggroll/proton-ge-custom").
 // Returns up to count releases, newest first.
 std::vector<ReleaseInfo> ListReleases(const std::string &repo,
                                       int count = 30);
-
-// Find an asset by name (exact match) in a specific release tag.
-// Returns the AssetInfo with the download URL, or throws if not found.
-AssetInfo ResolveAsset(const std::string &repo, const std::string &tag,
-                       const std::string &assetName);
 
 } // namespace Downloader
 } // namespace rocklaunch

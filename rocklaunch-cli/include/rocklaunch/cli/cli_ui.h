@@ -13,12 +13,14 @@ constexpr const char *kProfileColor = "36"; // cyan
 std::string Color(const std::string &text, const char *code);
 std::string PadLeft(const std::string &text, std::size_t width);
 std::string HumanSize(uint64_t bytes);
-std::string RepoShortName(const std::string &repo);
 
 void PrintError(const std::string &message);
 void PrintUsageError(const std::string &message,
                      const std::string &command,
                      const std::string &subcommand = "");
+
+// CLI-only: the core never prompts.
+bool ConfirmDestructive(const std::string &what);
 
 void PrintUsage();
 
