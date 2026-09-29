@@ -1,4 +1,4 @@
-# Rocksmith Launcher — Coding Guidelines
+# Rock Launcher — Coding Guidelines
 
 Keep the codebase readable, consistent, and easy to review. These are not meant to restrict contributors — they exist to keep the project coherent as it grows.
 
@@ -32,10 +32,7 @@ Nothing outside the core implements game detection, runner handling, patching, o
 **Data paths:**
 
 ```
-~/.config/rocksmith-launcher/
-    config.json                        launcher-wide settings
-                                       (future: runner defaults, colors, language)
-~/.local/share/rocksmith-launcher/
+~/.local/share/rock-launcher/
     profiles/<profile_id>.json         profile state (game, runner, patches)
     prefixes/<profile_id>/             WINEPREFIX / STEAM_COMPAT_DATA_PATH
     runners/                           downloaded GE-Proton versions
@@ -87,4 +84,4 @@ For compact or minor sections, use a simple separator with a blank line above:
 
 ## Config (JSON)
 
-Per-installation configuration lives in `profiles/<profile_id>.json` (name tag, game ID, install path, runner, patches). The profile ID is generated and never changes; `name` is the optional tag the user gives it. Launcher-wide settings live in `config.json`. Keep keys descriptive and predictable; new settings are exposed through the CLI first.
+Per-installation configuration lives in `profiles/<profile_id>.json` (name tag, game ID, install path, runner, patches). The profile ID is generated and never changes; `name` is the optional tag the user gives it. Keep keys descriptive and predictable; new settings are exposed through the CLI first.

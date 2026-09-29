@@ -5,7 +5,6 @@ endif()
 function(RunCli expectedResult)
     execute_process(
         COMMAND "${CMAKE_COMMAND}" -E env
-            "XDG_CONFIG_HOME=${TEST_ROOT}/config"
             "XDG_DATA_HOME=${TEST_ROOT}/data"
             "${ROCKLAUNCH_CLI}" ${ARGN}
         RESULT_VARIABLE result
@@ -29,7 +28,7 @@ RunCli(0 profile new steam)
 
 # A profile whose JSON can no longer be parsed must degrade to logged errors on
 # every read path (never an uncaught exception), and stay deletable.
-file(WRITE "${TEST_ROOT}/data/rocksmith-launcher/profiles/rocksmith2014remastered-1.json" "{ not valid json !!!")
+file(WRITE "${TEST_ROOT}/data/rock-launcher/profiles/rocksmith2014remastered-1.json" "{ not valid json !!!")
 
 RunCli(1 profile show rocksmith2014remastered-1)
 if (NOT LAST_OUTPUT MATCHES "could not be read")

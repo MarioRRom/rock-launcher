@@ -1,6 +1,7 @@
 #include "rocklaunch/core/logger.h"
 
-#include <cstdlib>
+#include "rocklaunch/core/config_store.h"
+
 #include <ctime>
 #include <fstream>
 #include <iomanip>
@@ -16,12 +17,6 @@ namespace
 
 constexpr std::uintmax_t kMaxLogSize = 100 * 1024; // 100 KB
 constexpr int kMaxRotatedFiles = 2; // keep .1 and .2
-
-fs::path EnvironmentPath(const char *name)
-{
-    const char *value = std::getenv(name);
-    return value != nullptr ? fs::path(value) : fs::path();
-}
 
 std::string Timestamp()
 {
@@ -113,17 +108,7 @@ fs::path Logger::LogFile() const
 
 fs::path Logger::DefaultLogDir()
 {
-    fs::path dataHome = EnvironmentPath("XDG_DATA_HOME");
-    if (!dataHome.empty()) {
-        return dataHome / "rocksmith-launcher" / "logs";
-    }
-
-    fs::path homeDir = EnvironmentPath("HOME");
-    if (!homeDir.empty()) {
-        return homeDir / ".local" / "share" / "rocksmith-launcher" / "logs";
-    }
-
-    throw std::runtime_error("Neither XDG_DATA_HOME nor HOME is set");
+    return ConfigStore::DefaultDataDir() / "logs";
 }
 
 void Logger::Write(std::string_view level, std::string_view message) const

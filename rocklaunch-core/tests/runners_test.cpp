@@ -874,13 +874,11 @@ int main(int argc, char *argv[])
     const fs::path testRoot = argc > 1 ? fs::path(argv[1]) : fs::temp_directory_path() / "runners-test";
     fs::remove_all(testRoot);
     fs::create_directories(testRoot / "home");
-    fs::create_directories(testRoot / "config");
     fs::create_directories(testRoot / "data");
 
     const fs::path toolPath = MakeToolPath(testRoot);
 
     setenv("HOME", (testRoot / "home").c_str(), 1);
-    setenv("XDG_CONFIG_HOME", (testRoot / "config").c_str(), 1);
     setenv("XDG_DATA_HOME", (testRoot / "data").c_str(), 1);
     setenv("PATH", toolPath.c_str(), 1);
 

@@ -255,7 +255,7 @@ void RemoveMissionDirectConnect(const fs::path &path)
 bool PatchCachePsarc(const fs::path &gameCache, bool patchDirection)
 {
     Logger logger;
-    fs::path tmpDir = fs::temp_directory_path() / "rocksmith-launcher";
+    fs::path tmpDir = fs::temp_directory_path() / "rock-launcher";
 
     std::error_code ec;
     fs::remove_all(tmpDir, ec);

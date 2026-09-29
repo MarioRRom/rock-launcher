@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(RocksmithLauncher
+project(RockLauncher
     VERSION 0.1.0
     DESCRIPTION "A Linux launcher for Rocksmith 2014 Edition Remastered"
     LANGUAGES CXX

@@ -1,4 +1,4 @@
-<h1 align="center">Rocksmith Launcher</h1>
+<h1 align="center">Rock Launcher</h1>
 <p align="center">Play Rocksmith 2014 on Linux without the headaches</p>
 
 > [!CAUTION]
@@ -63,8 +63,8 @@ ctest --test-dir build
 ./build/rocklaunch-cli/rocklaunch-cli --help
 ```
 
-Config and logs are created automatically on first run under
-`~/.config/rocksmith-launcher/` and `~/.local/share/rocksmith-launcher/`.
+Profiles and logs are created automatically on first run under
+`~/.local/share/rock-launcher/`.
 
 ### Contributing
 

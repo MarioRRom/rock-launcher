@@ -145,11 +145,9 @@ int main(int argc, char **argv)
     fs::remove_all(testRoot, error);
     fs::create_directories(testRoot / "home", error);
     fs::create_directories(testRoot / "data", error);
-    fs::create_directories(testRoot / "config", error);
 
     setenv("HOME", (testRoot / "home").string().c_str(), 1);
     setenv("XDG_DATA_HOME", (testRoot / "data").string().c_str(), 1);
-    setenv("XDG_CONFIG_HOME", (testRoot / "config").string().c_str(), 1);
 
     const fs::path root = testRoot / "data";
     fs::create_directories(root, error);

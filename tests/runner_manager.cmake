@@ -6,7 +6,6 @@ function(RunCli expectedResult)
     execute_process(
         COMMAND "${CMAKE_COMMAND}" -E env
             "HOME=${TEST_ROOT}/home"
-            "XDG_CONFIG_HOME=${TEST_ROOT}/config"
             "XDG_DATA_HOME=${TEST_ROOT}/data"
             "PATH=/nonexistent"
             "${ROCKLAUNCH_CLI}" ${ARGN}
@@ -80,8 +79,8 @@ if (NOT LAST_OUTPUT MATCHES "Runner: steam/Proton Test")
 endif()
 
 # A managed runner lives at runners/<source>/<name>/ and is listed under that source.
-file(MAKE_DIRECTORY "${TEST_ROOT}/data/rocksmith-launcher/runners/proton-ge-custom/GE-Proton Test")
-file(WRITE "${TEST_ROOT}/data/rocksmith-launcher/runners/proton-ge-custom/GE-Proton Test/proton" "")
+file(MAKE_DIRECTORY "${TEST_ROOT}/data/rock-launcher/runners/proton-ge-custom/GE-Proton Test")
+file(WRITE "${TEST_ROOT}/data/rock-launcher/runners/proton-ge-custom/GE-Proton Test/proton" "")
 # The same name as a Steam tool: a real name collision, one name in two sources.
 file(MAKE_DIRECTORY "${TEST_ROOT}/home/.steam/steam/compatibilitytools.d/GE-Proton Test")
 file(WRITE "${TEST_ROOT}/home/.steam/steam/compatibilitytools.d/GE-Proton Test/proton" "")
@@ -126,7 +125,7 @@ endif()
 
 # A managed runner lives at runners/<source>/<name>. Removing it by a bare name, in
 # any case, resolves to the same pair the listing prints.
-set(MANAGED "${TEST_ROOT}/data/rocksmith-launcher/runners/proton-ge-custom/GE-Proton11-7")
+set(MANAGED "${TEST_ROOT}/data/rock-launcher/runners/proton-ge-custom/GE-Proton11-7")
 file(WRITE "${MANAGED}/proton" "")
 RunCli(0 runner list)
 if (NOT LAST_OUTPUT MATCHES "proton-ge-custom/GE-Proton11-7")
@@ -139,8 +138,8 @@ if (EXISTS "${MANAGED}")
 endif()
 
 # A runner in the flat layout of older versions is not listed as a bogus source.
-file(WRITE "${TEST_ROOT}/data/rocksmith-launcher/runners/GE-Proton9-20/proton" "")
-file(WRITE "${TEST_ROOT}/data/rocksmith-launcher/runners/GE-Proton9-20/files/bin/wine" "")
+file(WRITE "${TEST_ROOT}/data/rock-launcher/runners/GE-Proton9-20/proton" "")
+file(WRITE "${TEST_ROOT}/data/rock-launcher/runners/GE-Proton9-20/files/bin/wine" "")
 RunCli(0 runner list)
 if (LAST_OUTPUT MATCHES "GE-Proton9-20")
     message(FATAL_ERROR "A flat-layout directory was listed as a runner")

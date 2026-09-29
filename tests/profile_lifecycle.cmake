@@ -5,7 +5,6 @@ endif()
 function(RunCli expectedResult)
     execute_process(
         COMMAND "${CMAKE_COMMAND}" -E env
-            "XDG_CONFIG_HOME=${TEST_ROOT}/config"
             "XDG_DATA_HOME=${TEST_ROOT}/data"
             "${ROCKLAUNCH_CLI}" ${ARGN}
         RESULT_VARIABLE result
