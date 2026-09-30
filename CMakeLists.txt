@@ -148,4 +148,40 @@ if (BUILD_TESTING)
         COMMAND rocklaunch-core-file-lock-test
             ${CMAKE_BINARY_DIR}/file-lock-test
     )
+
+    # The subprocess contract: non-throwing primitive, fail-fast wrapper, and the
+    # cancel predicate. Every case is a local binary, so no runner or network.
+    add_executable(rocklaunch-core-subprocess-test
+        rocklaunch-core/tests/subprocess_test.cpp
+    )
+    target_link_libraries(rocklaunch-core-subprocess-test PRIVATE rocklaunch::core)
+    add_test(
+        NAME rocklaunch-core-subprocess
+        COMMAND rocklaunch-core-subprocess-test
+            ${CMAKE_BINARY_DIR}/subprocess-test
+    )
+
+    # Logger has no CLI surface, and a logfile that cannot be written must not
+    # abort the operation being logged about.
+    add_executable(rocklaunch-core-logger-test
+        rocklaunch-core/tests/logger_test.cpp
+    )
+    target_link_libraries(rocklaunch-core-logger-test PRIVATE rocklaunch::core)
+    add_test(
+        NAME rocklaunch-core-logger
+        COMMAND rocklaunch-core-logger-test
+            ${CMAKE_BINARY_DIR}/logger-test
+    )
+
+    # The shared tmp-and-rename write. Its three failure messages are what the CLI
+    # prints verbatim, and it has no CLI surface of its own.
+    add_executable(rocklaunch-core-atomic-file-test
+        rocklaunch-core/tests/atomic_file_test.cpp
+    )
+    target_link_libraries(rocklaunch-core-atomic-file-test PRIVATE rocklaunch::core)
+    add_test(
+        NAME rocklaunch-core-atomic-file
+        COMMAND rocklaunch-core-atomic-file-test
+            ${CMAKE_BINARY_DIR}/atomic-file-test
+    )
 endif()

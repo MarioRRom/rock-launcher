@@ -282,10 +282,10 @@ bool PatchCachePsarc(const fs::path &gameCache, bool patchDirection)
             + "\n  the archive is not a Direct Connect release, or it is incomplete");
     }
 
-    RunSubprocess({"7z", "x", cache7z.string(),
-                   "manifests/ui_menu_pillar_startup.database.json",
-                   "manifests/ui_menu_pillar_mission.database.json",
-                   "-o" + tmpDir.string(), "-y", "-bso0"});
+    RunSubprocessOrThrow({"7z", "x", cache7z.string(),
+                          "manifests/ui_menu_pillar_startup.database.json",
+                          "manifests/ui_menu_pillar_mission.database.json",
+                          "-o" + tmpDir.string(), "-y", "-bso0"});
 
     fs::path manifestsDir = tmpDir / "manifests";
     fs::path startupJson = manifestsDir / "ui_menu_pillar_startup.database.json";
@@ -314,11 +314,11 @@ bool PatchCachePsarc(const fs::path &gameCache, bool patchDirection)
         RemoveMissionDirectConnect(missionJson);
     }
 
-    RunSubprocess({"7z", "u", cache7z.string(),
-                   "manifests/ui_menu_pillar_startup.database.json",
-                   "manifests/ui_menu_pillar_mission.database.json",
-                   "-bso0"},
-                  tmpDir);
+    RunSubprocessOrThrow({"7z", "u", cache7z.string(),
+                          "manifests/ui_menu_pillar_startup.database.json",
+                          "manifests/ui_menu_pillar_mission.database.json",
+                          "-bso0"},
+                          tmpDir);
 
     logger.Debug("DirectConnectPatch: repacking cache.psarc");
     fs::path repackedTmp = tmpDir / "cache.psarc.repacked";

@@ -5,6 +5,7 @@
 #include "rocklaunch/core/config_store.h"
 #include "rocklaunch/core/logger.h"
 #include "rocklaunch/core/runners/runner_assets.h"
+#include "rocklaunch/core/utils/atomic_file.h"
 #include "rocklaunch/core/utils/downloader.h"
 
 #include <chrono>
@@ -121,20 +122,9 @@ nlohmann::json ReleaseRow(const std::string &source, const ReleaseInfo &release)
 void WriteCache(const nlohmann::json &cache)
 {
     const fs::path path = CachePath();
-    const fs::path tempPath = path.string() + ".tmp";
     fs::create_directories(path.parent_path());
-    {
-        std::ofstream out(tempPath);
-        out << cache.dump(4) << '\n';
-        out.flush();
-        if (!out) {
-            Logger().Error("Runners: cannot write cache: " + tempPath.string());
-            throw std::runtime_error(
-                "target " + path.string() + "\n  check free space and permissions on "
-                + path.parent_path().string());
-        }
-    }
-    fs::rename(tempPath, path);
+    WriteFileAtomic(path, cache.dump(4) + "\n",
+                    "Runners: cache", "the releases list was not updated");
 }
 
 nlohmann::json RefreshCache()

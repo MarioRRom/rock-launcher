@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rocklaunch/core/launch.h"
+#include "rocklaunch/core/subprocess.h"
 
 #include <chrono>
 #include <functional>
@@ -28,14 +29,6 @@ enum class SessionState
 
 // Human-readable name of a session state.
 std::string SessionStateName(SessionState state);
-
-// Why and how the launched process ended.
-struct ExitInfo
-{
-    bool signaled = false; // terminated by a signal
-    int code = 0;          // exit status, or 128 + signal when signaled
-    int signal = 0;        // terminating signal number when signaled
-};
 
 // Abstraction over the concrete process the frontend uses. Core stays Qt-free:
 // the GUI supplies a QProcess-backed implementation, tests supply a fake.

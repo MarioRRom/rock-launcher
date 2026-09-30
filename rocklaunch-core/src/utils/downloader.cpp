@@ -1,6 +1,7 @@
 #include "rocklaunch/core/utils/downloader.h"
 
 #include "rocklaunch/core/logger.h"
+#include "rocklaunch/core/progress.h"
 
 #include <curl/curl.h>
 
@@ -145,13 +146,8 @@ bool IsGitHubApi(const std::string &url)
 }
 
 std::string DescribeError(CURLcode code, long responseCode,
-                          const std::string &url, bool cancelled,
-                          const char *errorBuffer)
+                          const std::string &url, const char *errorBuffer)
 {
-    if (cancelled) {
-        return "Download cancelled: " + url;
-    }
-
     switch (code) {
     case CURLE_FILE_COULDNT_READ_FILE:
         return "Cannot read file: " + url;
@@ -280,9 +276,14 @@ std::string Perform(const Transfer &transfer, const ProgressCallback &onProgress
         if (toFile) {
             fs::remove(tempPath, ec);
         }
+        // Checked before the log so a cancel the user asked for does not land as
+        // an ERROR on stderr and in the logfile.
+        if (ctx.cancelled) {
+            Logger().Info("Downloader: cancelled " + transfer.url);
+            throw Cancelled("the download was cancelled");
+        }
         Logger().Error("Downloader: "
-                       + DescribeError(result, responseCode, transfer.url, ctx.cancelled,
-                                       errorBuffer));
+                       + DescribeError(result, responseCode, transfer.url, errorBuffer));
         throw std::runtime_error(
             toFile ? "the partial file at " + transfer.destPath.string() + " was removed"
                    : "no file was written");

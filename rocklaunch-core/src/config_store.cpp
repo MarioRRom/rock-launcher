@@ -1,5 +1,8 @@
 #include "rocklaunch/core/config_store.h"
 
+#include "rocklaunch/core/logger.h"
+#include "rocklaunch/core/utils/atomic_file.h"
+
 #include <algorithm>
 #include <cstdlib>
 #include <fstream>
@@ -149,12 +152,10 @@ void ConfigStore::SaveProfile(const ProfileConfig &profile) const
         { "patches", patchesJson },
     };
 
-    std::ofstream output(ProfilePath(profile.id));
-    if (!output.is_open()) {
-        throw std::runtime_error("Unable to write profile: " + profile.id);
-    }
-
-    output << json.dump(4) << '\n';
+    // A profile JSON that cannot be parsed is unrecoverable, so it is renamed into
+    // place from a sibling — which has no ".json", so ListProfileIds ignores it.
+    WriteFileAtomic(ProfilePath(profile.id), json.dump(4) + "\n",
+                    "ConfigStore: profile", "the profile was not saved");
 }
 
 bool ConfigStore::DeleteProfile(const std::string &profileId) const

@@ -55,16 +55,22 @@ std::string FileUrl(const fs::path &path)
     return "file://" + path.string();
 }
 
-// The log message without its "YYYY-MM-DD HH:MM:SS [LEVEL] " prefix, so a
-// search for digits cannot match the clock.
+// Every line loses its "YYYY-MM-DD HH:MM:SS [LEVEL] " prefix: a fetch logs more
+// than one, and a search for digits would otherwise match the clock.
 std::string ReadLogMessages()
 {
     std::ifstream file(rocklaunch::Logger().LogFile());
-    std::ostringstream out;
-    out << file.rdbuf();
-    const std::string line = out.str();
-    const std::size_t start = line.find("] ");
-    return start == std::string::npos ? line : line.substr(start + 2);
+    std::ostringstream raw;
+    raw << file.rdbuf();
+    std::istringstream lines(raw.str());
+    std::string stripped;
+    std::string line;
+    while (std::getline(lines, line)) {
+        const std::size_t start = line.find("] ");
+        stripped += start == std::string::npos ? line : line.substr(start + 2);
+        stripped += '\n';
+    }
+    return stripped;
 }
 
 // Progress must move forward and end on a full bar, even though Fetch
@@ -154,6 +160,7 @@ void TestCallbackCancelsTransfer(const fs::path &dir)
     const fs::path dest = dir / "out" / "cancelled.bin";
     int calls = 0;
     bool threw = false;
+    bool wasCancelled = false;
     std::string message;
     try {
         rocklaunch::Downloader::Fetch(FileUrl(source), dest,
@@ -161,17 +168,24 @@ void TestCallbackCancelsTransfer(const fs::path &dir)
                 ++calls;
                 return false;
             });
+    } catch (const rocklaunch::Cancelled &error) {
+        threw = true;
+        wasCancelled = true;
+        message = error.what();
     } catch (const std::runtime_error &error) {
         threw = true;
         message = error.what();
     }
 
     Check(threw, "cancelling a transfer throws");
+    // By type, not by message: this destination is literally named
+    // "cancelled.bin", so a substring check on what() would pass either way.
+    Check(wasCancelled, "a cancelled transfer throws Cancelled, distinguishable from a failure");
     Check(calls > 0, "the reporter was called before the cancel");
     Check(calls < fullTicks,
           "a cancelled transfer stops far short of a full one");
     Check(message.find("cancelled") != std::string::npos,
-          "the error says it was cancelled, not that it failed");
+          "the error says it was cancelled, not that it failed: " + message);
     Check(!fs::exists(dest),
           "a cancelled transfer leaves no destination file");
     Check(!fs::exists(dest.string() + ".tmp"),

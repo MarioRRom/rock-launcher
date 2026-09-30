@@ -49,6 +49,19 @@ bool Throws(Callable callable)
     return false;
 }
 
+template <typename Exception, typename Callable>
+bool ThrowsAs(Callable callable)
+{
+    try {
+        callable();
+    } catch (const Exception &) {
+        return true;
+    } catch (const std::exception &) {
+        return false;
+    }
+    return false;
+}
+
 fs::path DataDir()
 {
     return rocklaunch::ConfigStore::DefaultDataDir();
@@ -684,8 +697,10 @@ void TestInstallCancelsAtEveryStage(const fs::path &root)
             return rocklaunch::StageName(progress.stage) != stageName;
         };
 
-        Check(Throws([&] { rocklaunch::Runners::Install("RunnerY", "proton-ge-custom", "", cancel); }),
-              "a cancel during " + stageName + " aborts the install");
+        Check(ThrowsAs<rocklaunch::Cancelled>([&] {
+                  rocklaunch::Runners::Install("RunnerY", "proton-ge-custom", "", cancel);
+              }),
+              "a cancel during " + stageName + " throws Cancelled, not a plain error");
         Check(!fs::exists(RunnersDir() / "proton-ge-custom" / "RunnerY"),
               "a cancelled install leaves no runner behind, cancelling " + stageName);
         Check(!fs::exists(RunnersDir() / "proton-ge-custom" / ".tmp-download-RunnerY"),

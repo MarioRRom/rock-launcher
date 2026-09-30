@@ -8,6 +8,7 @@
 #include "rocklaunch/core/utils/path_util.h"
 
 #include <fstream>
+#include <functional>
 #include <optional>
 #include <stdexcept>
 
@@ -48,7 +49,7 @@ void BeginStep(const ProgressCallback &onProgress, ProgressStage stage,
                const std::string &file)
 {
     if (onProgress && !onProgress(MakeStep(stage, file, 0.0))) {
-        throw std::runtime_error(std::string(StageName(stage)) + " cancelled");
+        throw Cancelled(std::string(StageName(stage)) + " cancelled");
     }
 }
 
@@ -58,6 +59,28 @@ void EndStep(const ProgressCallback &onProgress, ProgressStage stage,
     if (onProgress) {
         onProgress(MakeStep(stage, file, 100.0));
     }
+}
+
+// An unset predicate is what keeps RunSubprocess blocking in waitpid: installing
+// one that can only answer false would wake every 50 ms for nothing.
+void RunExtract(const std::vector<std::string> &args, const ProgressCallback &onProgress,
+                ProgressStage stage, const std::string &file)
+{
+    const Progress step = MakeStep(stage, file, 0.0);
+    bool cancelRequested = false;
+    std::function<bool()> isCancelled;
+    if (onProgress) {
+        isCancelled = [&onProgress, &step, &cancelRequested] {
+            cancelRequested = !onProgress(step);
+            return cancelRequested;
+        };
+    }
+
+    const ExitInfo result = RunSubprocess(args, {}, {}, isCancelled);
+    if (cancelRequested) {
+        throw Cancelled(std::string(StageName(stage)) + " cancelled");
+    }
+    ThrowIfFailed(result, args);
 }
 
 // The hash is the first token of the first line.
@@ -208,7 +231,8 @@ void Run(const Request &request, ProgressCallback onProgress)
         BeginStep(onProgress, ProgressStage::Extracting, request.assetName);
         const fs::path extractDir = scratchDir / "extracted";
         fs::create_directories(extractDir);
-        RunSubprocess({ "tar", "-xf", tarballPath.string(), "-C", extractDir.string() });
+        RunExtract({ "tar", "-xf", tarballPath.string(), "-C", extractDir.string() },
+                   onProgress, ProgressStage::Extracting, request.assetName);
         const fs::path extracted = OnlyDirectory(extractDir);
         EndStep(onProgress, ProgressStage::Extracting, request.assetName);
 

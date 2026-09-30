@@ -15,6 +15,7 @@ add_library(rocklaunch-core
     src/runners/runner_releases.cpp
     src/runners/runner_scan.cpp
     src/runners/runners.cpp
+    src/utils/atomic_file.cpp
     src/utils/checksum.cpp
     src/utils/downloader.cpp
     src/utils/file_lock.cpp

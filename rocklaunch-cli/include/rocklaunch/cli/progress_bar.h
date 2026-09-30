@@ -25,5 +25,6 @@ private:
     bool m_lineOpen = false;
     bool m_done = false;
     std::string m_lastKey;
+    std::string m_lastLine;
     std::chrono::steady_clock::time_point m_lastDraw{};
 };

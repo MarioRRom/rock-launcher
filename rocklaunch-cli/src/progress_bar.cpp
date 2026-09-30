@@ -58,7 +58,7 @@ std::string RenderBar(double percent, std::size_t cells)
     return "[" + std::string(filled, '#') + std::string(cells - filled, '.') + "]";
 }
 
-// Right-hand side: "[####....]  38%  256.3 MB  643.0 KB/s  07:28". Steps that
+// Right-hand side: "256.3 MB  643.0 KB/s  07:28  [####....]  38%". Steps that
 // measure no bytes (verify, extract) have none.
 std::string FormatTail(const rocklaunch::Progress &progress, std::size_t width)
 {
@@ -67,13 +67,6 @@ std::string FormatTail(const rocklaunch::Progress &progress, std::size_t width)
     }
 
     std::ostringstream out;
-    if (progress.totalBytes > 0) {
-        const std::size_t cells = width >= 90 ? 20 : (width >= 70 ? 10 : 0);
-        if (cells > 0) {
-            out << RenderBar(progress.percentage, cells) << ' ';
-        }
-        out << std::setw(3) << static_cast<int>(progress.percentage) << "%  ";
-    }
     out << HumanSize(progress.bytesTransferred);
     if (progress.bytesPerSecond > 0) {
         out << "  " << HumanSize(progress.bytesPerSecond) << "/s";
@@ -81,6 +74,14 @@ std::string FormatTail(const rocklaunch::Progress &progress, std::size_t width)
             out << "  " << FormatEta(static_cast<double>(progress.totalBytes - progress.bytesTransferred)
                                      / static_cast<double>(progress.bytesPerSecond));
         }
+    }
+    const std::size_t cells = width >= 90 ? 20 : (width >= 70 ? 10 : 0);
+    if (progress.totalBytes > 0) {
+        if (cells > 0) {
+            out << "  " << RenderBar(progress.percentage, cells);
+        }
+        // setw keeps the bar from shifting sideways as the percentage gains a digit.
+        out << ' ' << std::setw(3) << static_cast<int>(progress.percentage) << '%';
     }
     return out.str();
 }
@@ -138,14 +139,19 @@ bool ConsoleProgressBar::operator()(const rocklaunch::Progress &progress)
     }
 
     const bool finished = progress.percentage >= 100.0;
+    const std::string line = FormatLine(progress, TerminalWidth());
     const auto now = std::chrono::steady_clock::now();
-    if (m_lineOpen && !finished && now - m_lastDraw < kRedrawInterval) {
+    // A stage that measures no bytes repeats an identical line at the poll rate,
+    // so skipping an unchanged line is what stops that becoming a flush per tick.
+    if (m_lineOpen && !finished
+        && (line == m_lastLine || now - m_lastDraw < kRedrawInterval)) {
         return true;
     }
 
     m_lastDraw = now;
+    m_lastLine = line;
     m_lineOpen = true;
-    std::cout << '\r' << FormatLine(progress, TerminalWidth()) << "\x1b[K" << std::flush;
+    std::cout << '\r' << line << "\x1b[K" << std::flush;
 
     // A finished step ends its line right away: the logger writes to stderr and
     // would otherwise land on the same line as the bar.

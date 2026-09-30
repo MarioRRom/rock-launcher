@@ -6,8 +6,8 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <mutex>
 #include <sstream>
-#include <stdexcept>
 
 namespace rocklaunch
 {
@@ -78,7 +78,10 @@ void RotateLog(const fs::path &logFile)
 Logger::Logger(fs::path logDir)
     : m_logFile(std::move(logDir) / "rocklaunch.log")
 {
-    fs::create_directories(m_logFile.parent_path());
+    // Best effort: a logger that cannot start must not abort its caller, and
+    // every message still reaches std::cerr.
+    std::error_code error;
+    fs::create_directories(m_logFile.parent_path(), error);
 }
 
 void Logger::Debug(std::string_view message) const
@@ -113,6 +116,11 @@ fs::path Logger::DefaultLogDir()
 
 void Logger::Write(std::string_view level, std::string_view message) const
 {
+    // Rotation renames the log and the append reopens it, so the whole write is
+    // locked: std::cerr does not race, but it does interleave mid-line.
+    static std::mutex mutex;
+    const std::lock_guard<std::mutex> lock(mutex);
+
     std::cerr << "[" << LevelColor(level) << level << "\033[0m] " << message << '\n';
 
     if (level == "DEBUG") {
@@ -125,8 +133,17 @@ void Logger::Write(std::string_view level, std::string_view message) const
     RotateLog(m_logFile);
 
     std::ofstream output(m_logFile, std::ios::app);
+    // Best effort, and never an exception: whatever is being logged about
+    // has usually already succeeded, so a full disk is not its failure.
     if (!output.is_open()) {
-        throw std::runtime_error("Unable to open log file: " + m_logFile.string());
+        // Static: Logger is built per message, so a member flag would re-report every time.
+        static bool reported = false;
+        if (!reported) {
+            reported = true;
+            std::cerr << "[" << LevelColor("ERROR") << "ERROR" << "\033[0m] "
+                      << "cannot write the logfile " << m_logFile << '\n';
+        }
+        return;
     }
 
     output << fileLine << '\n';

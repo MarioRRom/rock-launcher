@@ -6,11 +6,12 @@
 
 #include "rocklaunch/core/config_store.h"
 #include "rocklaunch/core/profile_manager.h"
+#include "rocklaunch/core/progress.h"
 #include "rocklaunch/core/rocksmith2014_remastered_profile.h"
 #include "rocklaunch/core/runners/runners.h"
 
+#include <csignal>
 #include <exception>
-#include <functional>
 #include <iostream>
 #include <set>
 #include <string>
@@ -20,6 +21,35 @@
 
 namespace
 {
+
+// Written from the SIGINT handler, so it has to be sig_atomic_t.
+volatile std::sig_atomic_t gInterrupted = 0;
+
+void RequestInterrupt(int)
+{
+    gInterrupted = 1;
+}
+
+class InterruptGuard
+{
+public:
+    InterruptGuard()
+    {
+        gInterrupted = 0;
+        mPrevious = std::signal(SIGINT, RequestInterrupt);
+    }
+
+    ~InterruptGuard()
+    {
+        std::signal(SIGINT, mPrevious);
+    }
+
+    InterruptGuard(const InterruptGuard &) = delete;
+    InterruptGuard &operator=(const InterruptGuard &) = delete;
+
+private:
+    void (*mPrevious)(int) = SIG_DFL;
+};
 
 bool LoadReleases(nlohmann::json &releases, bool forceRefresh)
 {
@@ -175,8 +205,17 @@ int RunnerInstall(const std::string &runnerToken,
     }
 
     ConsoleProgressBar bar;
+    const InterruptGuard interruptGuard;
     try {
-        rocklaunch::Runners::Install(name, source, fileName, std::ref(bar));
+        rocklaunch::Runners::Install(
+            name, source, fileName,
+            [&bar](const rocklaunch::Progress &progress) {
+                return gInterrupted == 0 && bar(progress);
+            });
+    } catch (const rocklaunch::Cancelled &) {
+        bar.Finish();
+        std::cout << "Aborted.\n";
+        return 130;
     } catch (const std::exception &error) {
         bar.Finish();
         PrintError("Install failed: " + std::string(error.what()));
