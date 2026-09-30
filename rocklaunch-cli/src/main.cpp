@@ -1,38 +1,27 @@
-#include "cli_ui.h"
+#include "rocklaunch/cli/cli_ui.h"
+#include "rocklaunch/cli/progress_bar.h"
+#include "rocklaunch/cli/runners/runner_commands.h"
 
 #include "rocklaunch/core/config_store.h"
 #include "rocklaunch/core/launch.h"
 #include "rocklaunch/core/patches/patch_manager.h"
 #include "rocklaunch/core/profile_manager.h"
 #include "rocklaunch/core/rocksmith2014_remastered_profile.h"
-#include "rocklaunch/core/runners/launcher_runner_source.h"
-#include "rocklaunch/core/runners/runner_manager.h"
-#include "rocklaunch/core/utils/string_util.h"
+#include "rocklaunch/core/runners/runners.h"
+
+#include <nlohmann/json.hpp>
 
 #include <cerrno>
 #include <cstring>
 #include <exception>
 #include <iostream>
 #include <optional>
-#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace
 {
-
-// Confirmation for destructive commands. CLI-only; the core never prompts.
-bool ConfirmDestructive(const std::string &what)
-{
-    std::cout << what << " [y/N] ";
-    std::cout.flush();
-
-    std::string answer;
-    std::getline(std::cin, answer);
-    return answer == "y" || answer == "Y" || answer == "yes" || answer == "Yes"
-        || answer == "YES";
-}
 
 // Profile commands
 
@@ -82,7 +71,10 @@ int ShowProfile(const std::string &profileId, rocklaunch::ProfileManager &profil
               << "Name: " << (config.name.empty() ? "not assigned" : config.name) << '\n'
               << "Game: " << config.gameId << '\n'
               << "Prefix path: " << config.prefixDir << '\n'
-              << "Runner: " << (config.runnerId.empty() ? "not assigned" : config.runnerId) << '\n'
+              << "Runner: "
+              << (config.runnerName.empty() ? "not assigned"
+                                            : config.runnerSource + "/" + config.runnerName)
+              << '\n'
               << "Install path: ";
     if (config.installDir.empty()) {
         std::cout << "not assigned\n";
@@ -106,165 +98,6 @@ int ShowProfile(const std::string &profileId, rocklaunch::ProfileManager &profil
     }
     std::cout << '\n';
 
-    return 0;
-}
-
-// Runner commands
-
-int ListRunners(const rocklaunch::RunnerManager &runnerManager)
-{
-    std::vector<rocklaunch::Runner> runners = runnerManager.List();
-    if (runners.empty()) {
-        std::cout << "No Wine or Proton runners were found.\n";
-        return 0;
-    }
-
-    std::cout << Color(PadLeft("Id", 56), "1") << Color(PadLeft("Type", 8), "1")
-              << Color(PadLeft("Source", 10), "1") << Color("Executable", "1") << '\n';
-    for (const rocklaunch::Runner &runner : runners) {
-        std::cout << Color(PadLeft(runner.id, 56), kRunnerColor)
-                  << PadLeft(rocklaunch::RunnerTypeName(runner.type), 8)
-                  << PadLeft(runner.source, 10) << runner.executable.string() << '\n';
-    }
-
-    return 0;
-}
-
-int SetRunner(const std::string &profileId,
-               const std::string &runnerId,
-               rocklaunch::ProfileManager &profiles,
-               const rocklaunch::RunnerManager &runnerManager)
-{
-    if (!profiles.SetRunner(profileId, runnerId, runnerManager)) {
-        return 1;
-    }
-
-    std::cout << "Assigned runner " << runnerId << " to profile " << profileId << '\n';
-    return 0;
-}
-
-int UpdateRunnerList(rocklaunch::ConfigStore &configStore)
-{
-    rocklaunch::RunnerManager runnerManager = rocklaunch::RunnerManager::CreateDefault();
-    runnerManager.Search("", configStore.DataDir(), true);
-    std::cout << "Updated the releases list.\n";
-    return 0;
-}
-
-int SearchRunners(const std::string &query,
-                  rocklaunch::ConfigStore &configStore,
-                  bool forceRefresh)
-{
-    rocklaunch::RunnerManager runnerManager = rocklaunch::RunnerManager::CreateDefault();
-    std::vector<rocklaunch::RunnerRelease> releases =
-        runnerManager.Search(query, configStore.DataDir(), forceRefresh);
-
-    if (releases.empty()) {
-        std::cout << "No releases found for: " << query << '\n';
-        return 0;
-    }
-
-    std::vector<rocklaunch::Runner> installed = runnerManager.List();
-    std::set<std::string> installedNames;
-    for (const rocklaunch::Runner &r : installed) {
-        installedNames.insert(rocklaunch::ToLower(r.name));
-    }
-
-    for (const rocklaunch::RunnerRelease &rr : releases) {
-        std::string size = "?";
-        std::optional<rocklaunch::AssetInfo> asset = runnerManager.SelectAsset(rr);
-        if (asset.has_value()) {
-            size = HumanSize(asset->size);
-        }
-
-        std::string package = RepoShortName(rr.repo) + '/' + Color(rr.tag, kRunnerColor);
-
-        std::cout << package << "  " << size;
-        if (installedNames.count(rocklaunch::ToLower(rr.tag)) > 0) {
-            std::cout << "  " << Color("[installed]", "32");
-        }
-        std::cout << '\n';
-    }
-
-    return 0;
-}
-
-int InstallRunner(const std::string &runnerName,
-                  const std::string &assetName,
-                  bool force,
-                  rocklaunch::ConfigStore &configStore)
-{
-    rocklaunch::fs::path runnersDir = rocklaunch::LauncherRunnerSource::DefaultRunnerDir();
-    rocklaunch::RunnerManager runnerManager = rocklaunch::RunnerManager::CreateDefault();
-
-    // Resolve the canonical tag (case-insensitive) so the prompt and folder
-    // name match what upstream uses, regardless of how the user typed it.
-    std::string canonicalName = runnerName;
-    std::optional<std::string> resolved =
-        runnerManager.ResolveName(runnerName, configStore.DataDir());
-    if (resolved.has_value()) {
-        canonicalName = *resolved;
-    } else {
-        PrintError("No release named '" + runnerName + "' in cache. "
-                   "Use 'runner search <query>' to browse available releases.");
-        return 1;
-    }
-
-    if (!force) {
-        bool alreadyInstalled = runnerManager.IsInstalled(canonicalName, runnersDir);
-        std::string prompt = alreadyInstalled
-            ? "Runner " + canonicalName + " is already installed. Reinstall it?"
-            : "Install runner " + canonicalName + "?";
-        if (!ConfirmDestructive(prompt)) {
-            std::cout << "Aborted.\n";
-            return 1;
-        }
-    }
-
-    try {
-        runnerManager.Install(runnerName, assetName, runnersDir);
-    } catch (const std::exception &error) {
-        PrintError("Install failed: " + std::string(error.what()));
-        return 1;
-    }
-
-    std::cout << "Installed runner: " << canonicalName << '\n';
-    return 0;
-}
-
-int RemoveRunner(const std::string &runnerName, bool force,
-                 rocklaunch::ConfigStore &configStore)
-{
-    rocklaunch::fs::path runnersDir = rocklaunch::LauncherRunnerSource::DefaultRunnerDir();
-    rocklaunch::RunnerManager runnerManager = rocklaunch::RunnerManager::CreateDefault();
-
-    std::string canonicalName = runnerName;
-    std::optional<std::string> resolved =
-        runnerManager.ResolveName(runnerName, configStore.DataDir());
-    if (resolved.has_value()) {
-        canonicalName = *resolved;
-    } else {
-        PrintError("No release named '" + runnerName + "' in cache. "
-                   "Use 'runner search <query>' to browse available releases.");
-        return 1;
-    }
-
-    if (!force) {
-        std::string prompt = "Remove runner " + canonicalName + "?";
-        if (!ConfirmDestructive(prompt)) {
-            std::cout << "Aborted.\n";
-            return 1;
-        }
-    }
-
-    try {
-        runnerManager.Remove(canonicalName, runnersDir);
-    } catch (const std::exception &error) {
-        PrintError("Remove failed: " + std::string(error.what()));
-        return 1;
-    }
-
-    std::cout << "Removed runner: " << canonicalName << '\n';
     return 0;
 }
 
@@ -435,22 +268,22 @@ int ListProfiles(rocklaunch::ProfileManager &profiles, const std::string &gameId
 
 int LaunchProfile(const std::string &profileId,
                   rocklaunch::ProfileManager &profiles,
-                  const rocklaunch::Rocksmith2014RemasteredProfile &gameProfile,
-                  const rocklaunch::RunnerManager &runnerManager)
+                  const rocklaunch::Rocksmith2014RemasteredProfile &gameProfile)
 {
     // Pre-flight checks are core business rules shared with the GUI.
-    rocklaunch::ProfileValidation validation = profiles.ValidateProfile(profileId, runnerManager);
+    rocklaunch::ProfileValidation validation = profiles.ValidateProfile(profileId);
     if (!validation.isValid) {
         return 1;
     }
 
     rocklaunch::ProfileConfig config = profiles.GetProfile(profileId).value();
-    std::optional<rocklaunch::Runner> runner = runnerManager.Find(config.runnerId);
 
-    rocklaunch::LaunchCommand launch = rocklaunch::BuildLaunchCommand(config, *runner, gameProfile);
+    const rocklaunch::RunnerRef runner = rocklaunch::ResolveRunner(config);
+    rocklaunch::LaunchCommand launch =
+        rocklaunch::BuildLaunchCommand(config, runner, gameProfile);
 
     // Prefix creation also reports its warnings through the core logger.
-    rocklaunch::EnsurePrefix(config.prefixDir, *runner);
+    rocklaunch::EnsurePrefix(config.prefixDir, runner);
 
     if (!rocklaunch::ExecLaunchCommand(launch)) {
         PrintError("Failed to start '" + launch.command.front() + "': "
@@ -471,7 +304,6 @@ int main(int argc, char *argv[])
         rocklaunch::ConfigStore configStore;
         rocklaunch::Rocksmith2014RemasteredProfile profile;
         rocklaunch::ProfileManager profiles(configStore, profile);
-        rocklaunch::RunnerManager runnerManager = rocklaunch::RunnerManager::CreateDefault();
         rocklaunch::PatchManager patchManager =
             rocklaunch::PatchManager::CreateDefault(configStore);
 
@@ -496,23 +328,37 @@ int main(int argc, char *argv[])
         }
 
         if (argument == "runner" && argc == 3 && std::string_view(argv[2]) == "-u") {
-            return UpdateRunnerList(configStore);
+            nlohmann::json releases;
+            try {
+                releases = rocklaunch::Runners::Releases(true);
+            } catch (const std::exception &error) {
+                PrintError(std::string(error.what()));
+                return 1;
+            }
+            std::cout << "Updated the releases list (" << releases["releases"].size()
+                      << " releases).\n";
+            return 0;
         }
 
         if (argument == "runner" && argc == 3 && std::string_view(argv[2]) == "list") {
-            return ListRunners(runnerManager);
+            return RunnerList();
         }
 
         if (argument == "runner" && argc == 5 && std::string_view(argv[2]) == "set") {
-            return SetRunner(argv[3], argv[4], profiles, runnerManager);
+            return RunnerSet(argv[3], argv[4]);
         }
 
-        if (argument == "runner" && argc >= 4 && std::string_view(argv[2]) == "search") {
+        if (argument == "runner" && argc >= 3 && std::string_view(argv[2]) == "search") {
             bool refresh = false;
             std::string query;
             for (int i = 3; i < argc; ++i) {
-                if (std::string_view(argv[i]) == "-u") {
+                const std::string_view arg = argv[i];
+                if (arg == "-u") {
                     refresh = true;
+                } else if (arg.rfind('-', 0) == 0) {
+                    PrintUsageError("unknown option '" + std::string(arg) + "'",
+                                    "runner", "search");
+                    return 1;
                 } else {
                     if (!query.empty()) {
                         query += ' ';
@@ -520,38 +366,58 @@ int main(int argc, char *argv[])
                     query += argv[i];
                 }
             }
-            return SearchRunners(query, configStore, refresh);
+            return RunnerSearch(query, refresh);
         }
 
         if (argument == "runner" && argc >= 4 && std::string_view(argv[2]) == "install") {
-            std::string runnerName = argv[3];
-            std::string assetName;
+            std::string runnerToken;
+            std::string fileName;
             bool force = false;
-            for (int i = 4; i < argc; ++i) {
-                if (IsForceFlag(std::string_view(argv[i]))) {
+            for (int i = 3; i < argc; ++i) {
+                const std::string_view arg = argv[i];
+                if (IsForceFlag(arg)) {
                     force = true;
-                } else if (assetName.empty()) {
-                    assetName = argv[i];
+                } else if (runnerToken.empty()) {
+                    runnerToken = arg;
+                } else if (fileName.empty()) {
+                    fileName = arg;
+                } else {
+                    PrintUsageError("unexpected argument '" + std::string(arg) + "'",
+                                    "runner", "install");
+                    return 1;
                 }
             }
-            return InstallRunner(runnerName, assetName, force, configStore);
+            if (runnerToken.empty()) {
+                PrintUsageError("missing runner", "runner", "install");
+                return 1;
+            }
+            return RunnerInstall(runnerToken, fileName, force);
         }
 
         if (argument == "runner" && argc >= 4 && std::string_view(argv[2]) == "remove") {
             bool force = false;
-            std::string runnerName;
+            std::string runnerToken;
             for (int i = 3; i < argc; ++i) {
-                if (IsForceFlag(std::string_view(argv[i]))) {
+                const std::string_view arg = argv[i];
+                if (IsForceFlag(arg)) {
                     force = true;
-                } else if (runnerName.empty()) {
-                    runnerName = argv[i];
+                } else if (runnerToken.empty()) {
+                    runnerToken = arg;
+                } else {
+                    PrintUsageError("unexpected argument '" + std::string(arg) + "'",
+                                    "runner", "remove");
+                    return 1;
                 }
             }
-            return RemoveRunner(runnerName, force, configStore);
+            if (runnerToken.empty()) {
+                PrintUsageError("missing runner", "runner", "remove");
+                return 1;
+            }
+            return RunnerRemove(runnerToken, force);
         }
 
         if (argument == "launch" && argc == 3) {
-            return LaunchProfile(argv[2], profiles, profile, runnerManager);
+            return LaunchProfile(argv[2], profiles, profile);
         }
 
         if (argument == "patch" && argc == 3 && std::string_view(argv[2]) == "list") {

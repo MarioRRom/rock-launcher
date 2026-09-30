@@ -1,12 +1,13 @@
 #include "rocklaunch/core/logger.h"
 
-#include <cstdlib>
+#include "rocklaunch/core/config_store.h"
+
 #include <ctime>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <mutex>
 #include <sstream>
-#include <stdexcept>
 
 namespace rocklaunch
 {
@@ -16,12 +17,6 @@ namespace
 
 constexpr std::uintmax_t kMaxLogSize = 100 * 1024; // 100 KB
 constexpr int kMaxRotatedFiles = 2; // keep .1 and .2
-
-fs::path EnvironmentPath(const char *name)
-{
-    const char *value = std::getenv(name);
-    return value != nullptr ? fs::path(value) : fs::path();
-}
 
 std::string Timestamp()
 {
@@ -83,7 +78,10 @@ void RotateLog(const fs::path &logFile)
 Logger::Logger(fs::path logDir)
     : m_logFile(std::move(logDir) / "rocklaunch.log")
 {
-    fs::create_directories(m_logFile.parent_path());
+    // Best effort: a logger that cannot start must not abort its caller, and
+    // every message still reaches std::cerr.
+    std::error_code error;
+    fs::create_directories(m_logFile.parent_path(), error);
 }
 
 void Logger::Debug(std::string_view message) const
@@ -113,21 +111,16 @@ fs::path Logger::LogFile() const
 
 fs::path Logger::DefaultLogDir()
 {
-    fs::path dataHome = EnvironmentPath("XDG_DATA_HOME");
-    if (!dataHome.empty()) {
-        return dataHome / "rocksmith-launcher" / "logs";
-    }
-
-    fs::path homeDir = EnvironmentPath("HOME");
-    if (!homeDir.empty()) {
-        return homeDir / ".local" / "share" / "rocksmith-launcher" / "logs";
-    }
-
-    throw std::runtime_error("Neither XDG_DATA_HOME nor HOME is set");
+    return ConfigStore::DefaultDataDir() / "logs";
 }
 
 void Logger::Write(std::string_view level, std::string_view message) const
 {
+    // Rotation renames the log and the append reopens it, so the whole write is
+    // locked: std::cerr does not race, but it does interleave mid-line.
+    static std::mutex mutex;
+    const std::lock_guard<std::mutex> lock(mutex);
+
     std::cerr << "[" << LevelColor(level) << level << "\033[0m] " << message << '\n';
 
     if (level == "DEBUG") {
@@ -140,8 +133,17 @@ void Logger::Write(std::string_view level, std::string_view message) const
     RotateLog(m_logFile);
 
     std::ofstream output(m_logFile, std::ios::app);
+    // Best effort, and never an exception: whatever is being logged about
+    // has usually already succeeded, so a full disk is not its failure.
     if (!output.is_open()) {
-        throw std::runtime_error("Unable to open log file: " + m_logFile.string());
+        // Static: Logger is built per message, so a member flag would re-report every time.
+        static bool reported = false;
+        if (!reported) {
+            reported = true;
+            std::cerr << "[" << LevelColor("ERROR") << "ERROR" << "\033[0m] "
+                      << "cannot write the logfile " << m_logFile << '\n';
+        }
+        return;
     }
 
     output << fileLine << '\n';

@@ -1,4 +1,4 @@
-# Rocksmith Launcher — Coding Guidelines
+# Rock Launcher — Coding Guidelines
 
 Keep the codebase readable, consistent, and easy to review. These are not meant to restrict contributors — they exist to keep the project coherent as it grows.
 
@@ -23,7 +23,7 @@ Nothing outside the core implements game detection, runner handling, patching, o
 - `IGameProfile` — behavior of a supported game (`Id`, `ValidateInstall`, `RequiredEnv`, `Executable`).
 - `ILaunchPatch` — patch interface (`Id`, `GameId`, `Preset`, `IsEnabled`, `Apply`, `Remove`).
 - `GameSource` — locates the game (`SteamSource`, `ManualSource`). No scattered conditional logic.
-- `IRunnerSource` — discovers local Wine/Proton runners. `RunnerManager` merges sources.
+- `Runners` — release cache, installed scan and install/remove. Returns raw JSON rows, so a frontend never translates between shapes.
 
 **Profiles** (`ProfileConfig`) represent one installation of a game with its own path, runner, prefix, and patch settings. The same install directory cannot belong to more than one profile.
 
@@ -32,22 +32,14 @@ Nothing outside the core implements game detection, runner handling, patching, o
 **Data paths:**
 
 ```
-~/.config/rocksmith-launcher/
-    config.json                        launcher-wide settings
-                                       (future: runner defaults, colors, language)
-~/.local/share/rocksmith-launcher/
+~/.local/share/rock-launcher/
     profiles/<profile_id>.json         profile state (game, runner, patches)
     prefixes/<profile_id>/             WINEPREFIX / STEAM_COMPAT_DATA_PATH
     runners/                           downloaded GE-Proton versions
+    runner_releases.json               release list cache, 24 h TTL
     patches/                           cached downloadable patches
     logs/
 ```
-
----
-
-## Config (JSON)
-
-Per-installation configuration lives in `profiles/<profile_id>.json` (name tag, game ID, install path, runner, patches). The profile ID is generated and never changes; `name` is the optional tag the user gives it. Launcher-wide settings live in `config.json`. Keep keys descriptive and predictable; new settings are exposed through the CLI first.
 
 ---
 
@@ -117,6 +109,12 @@ For compact or minor sections, use a simple separator with a blank line above:
 
 // Path assignment
 ```
+
+---
+
+## Config (JSON)
+
+Per-installation configuration lives in `profiles/<profile_id>.json` (name tag, game ID, install path, runner, patches). The profile ID is generated and never changes; `name` is the optional tag the user gives it. Keep keys descriptive and predictable; new settings are exposed through the CLI first.
 
 ---
 

@@ -1,54 +1,33 @@
 #pragma once
 
-#include "rocklaunch/core/runners/runner_cache.h"
-#include "rocklaunch/core/utils/downloader.h"
+#include "rocklaunch/core/progress.h"
+#include "rocklaunch/core/runners/runners.h"
 
-#include <filesystem>
-#include <optional>
 #include <string>
 
 namespace rocklaunch
 {
 
-// Download, verify, extract, and remove managed runners (apt install/remove layer).
-// Install works strictly from the cache, like `apt install` works from the
-// local package list.
-class RunnerInstaller
+// Unpacking a runner release into the runners dir, from URLs the cache holds.
+namespace runner_install
 {
-public:
-    // Download, SHA-512 verify, extract, and install a runner.
-    // assetName is optional; auto-detects by host arch if omitted.
-    void Install(const std::string &runnerName,
-                 const std::string &assetName,
-                 const fs::path &runnersDir,
-                 const RunnerCache &cache);
 
-    // Delete a managed runner directory.
-    void Remove(const std::string &runnerName,
-                const fs::path &runnersDir);
-
-    // True if a managed runner with this name is installed.
-    bool IsInstalled(const std::string &runnerName,
-                     const fs::path &runnersDir) const;
-
-    // Select the best tarball asset for the host architecture.
-    // Returns nullopt when ambiguous (caller should ask for --asset).
-    std::optional<AssetInfo> SelectAsset(const RunnerRelease &release) const;
-
-    // Find the release in a list matching a runner name (case-insensitive tag).
-    static const RunnerRelease *ResolveRelease(
-        const std::vector<RunnerRelease> &releases,
-        const std::string &runnerName);
-
-private:
-    // Find the .sha512sum asset for a release, disambiguating by host arch.
-    static std::optional<AssetInfo> FindSha512Asset(const RunnerRelease &release);
-
-    // Detect host architecture via uname() (e.g. "x86_64").
-    static std::string DetectHostArch();
-
-    // Parse a sha512sum file and return the hex hash (first token of first line).
-    static std::string ParseSha512SumFile(const fs::path &path);
+struct Request
+{
+    fs::path targetDir;
+    std::string assetName;
+    std::string assetUrl;
+    std::string sha512Name;
+    std::string sha512Url;
 };
 
+// Removes scratch dirs of installs killed before they could unwind. A dir whose
+// runner lock can be taken has no live owner.
+void SweepAbandoned(const fs::path &runnersDir);
+
+// Downloads both assets, verifies the tarball, and swaps the extracted directory
+// into place. A second install of the same runner bounces on the lock.
+void Run(const Request &request, ProgressCallback onProgress);
+
+} // namespace runner_install
 } // namespace rocklaunch

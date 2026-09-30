@@ -2,7 +2,7 @@
 
 This project is built with a lot of AI assistance, and AI is a welcome and productive tool in the workflow. This policy exists not because of an anti-AI stance, but to protect maintainers and reviewers from low-effort, low-quality contributions.
 
-These rules apply to outside contributions to Rocksmith Launcher. Maintainers are exempt from these rules and may use AI tools at their discretion.
+These rules apply to outside contributions to Rock Launcher. Maintainers are exempt from these rules and may use AI tools at their discretion.
 
 That comes with two conditions:
 

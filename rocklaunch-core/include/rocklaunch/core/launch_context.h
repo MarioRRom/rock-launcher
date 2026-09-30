@@ -14,7 +14,8 @@ struct LaunchContext
 {
     fs::path installDir;
     fs::path prefixDir;
-    std::string runnerId;
+    std::string runnerName;
+    std::string runnerSource;
 };
 
 } // namespace rocklaunch

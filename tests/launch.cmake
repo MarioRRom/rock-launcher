@@ -6,7 +6,6 @@ function(RunCli expectedResult)
     execute_process(
         COMMAND "${CMAKE_COMMAND}" -E env
             "HOME=${TEST_ROOT}/home"
-            "XDG_CONFIG_HOME=${TEST_ROOT}/config"
             "XDG_DATA_HOME=${TEST_ROOT}/data"
             "${ROCKLAUNCH_CLI}" ${ARGN}
         RESULT_VARIABLE result
@@ -34,7 +33,7 @@ file(CHMOD "${TEST_ROOT}/home/.steam/steam/compatibilitytools.d/GE-Proton Test/p
 
 # Creating a profile assigns its generated id and prefix path right away.
 RunCli(0 profile new)
-file(READ "${TEST_ROOT}/data/rocksmith-launcher/profiles/rocksmith2014remastered-1.json" profileJson)
+file(READ "${TEST_ROOT}/data/rock-launcher/profiles/rocksmith2014remastered-1.json" profileJson)
 if (NOT "${profileJson}" MATCHES "prefixes/rocksmith2014remastered-1")
     message(FATAL_ERROR "profile new did not persist the default prefix_dir")
 endif()
@@ -53,8 +52,8 @@ if (NOT LAST_OUTPUT MATCHES "runner set")
 endif()
 
 # With a runner the launch prepares the prefix and runs the game process.
-RunCli(0 runner set rocksmith2014remastered-1 steam-proton-ge-proton-test)
+RunCli(0 runner set rocksmith2014remastered-1 "steam/GE-Proton Test")
 RunCli(0 launch rocksmith2014remastered-1)
-if (NOT EXISTS "${TEST_ROOT}/data/rocksmith-launcher/prefixes/rocksmith2014remastered-1")
+if (NOT EXISTS "${TEST_ROOT}/data/rock-launcher/prefixes/rocksmith2014remastered-1")
     message(FATAL_ERROR "The launch did not create the profile prefix")
 endif()

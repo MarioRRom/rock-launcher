@@ -80,6 +80,46 @@ void TestSetName(rocklaunch::ProfileManager &profiles)
           "a rejected rename leaves the profile untouched");
 }
 
+// LoadProfile and SaveProfile are hand-written mirrors of one schema, so a field
+// added to one and forgotten in the other would silently load as its default.
+// Every field is set to a non-default value so such a drop fails here.
+void TestRoundTrip(rocklaunch::ConfigStore &store)
+{
+    rocklaunch::ProfileConfig original;
+    original.id = "rocksmith2014remastered-9";
+    original.name = "Partida de Juan";
+    original.gameId = "someothergame";
+    original.installDir = "/media/games/rs2014";
+    original.runnerName = "GE-Proton11-7";
+    original.runnerSource = "proton-ge-custom";
+    original.prefixDir = "/some/prefix/rocksmith2014remastered-9";
+
+    rocklaunch::PatchState enabled;
+    enabled.enabled = true;
+    enabled.settings["quality"] = "high";
+    original.patches["cdlc-enabler"] = enabled;
+    rocklaunch::PatchState disabled;
+    original.patches["direct-connect"] = disabled;
+
+    store.SaveProfile(original);
+    rocklaunch::ProfileConfig loaded = store.LoadProfile(original.id);
+
+    Check(loaded.id == original.id, "round-trip id");
+    Check(loaded.name == original.name, "round-trip name");
+    Check(loaded.gameId == original.gameId, "round-trip gameId");
+    Check(loaded.installDir == original.installDir, "round-trip installDir");
+    Check(loaded.runnerName == original.runnerName, "round-trip runnerName");
+    Check(loaded.runnerSource == original.runnerSource, "round-trip runnerSource");
+    Check(loaded.prefixDir == original.prefixDir, "round-trip prefixDir");
+    Check(loaded.patches.size() == original.patches.size(), "round-trip patch count");
+    Check(loaded.patches.count("cdlc-enabler") == 1, "round-trip enabled patch present");
+    Check(loaded.patches.at("cdlc-enabler").enabled, "round-trip enabled patch stays enabled");
+    Check(loaded.patches.at("cdlc-enabler").settings.at("quality") == "high",
+          "round-trip patch settings");
+    Check(loaded.patches.count("direct-connect") == 1, "round-trip disabled patch present");
+    Check(!loaded.patches.at("direct-connect").enabled, "round-trip disabled patch stays disabled");
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -91,13 +131,11 @@ int main(int argc, char **argv)
     fs::remove_all(testRoot, error);
     fs::create_directories(testRoot / "home", error);
     fs::create_directories(testRoot / "data", error);
-    fs::create_directories(testRoot / "config", error);
 
     // Isolate state exactly like the CLI test scripts: never touch the user's
     // real XDG directories.
     setenv("HOME", (testRoot / "home").string().c_str(), 1);
     setenv("XDG_DATA_HOME", (testRoot / "data").string().c_str(), 1);
-    setenv("XDG_CONFIG_HOME", (testRoot / "config").string().c_str(), 1);
 
     rocklaunch::ConfigStore store;
     rocklaunch::Rocksmith2014RemasteredProfile gameProfile;
@@ -106,6 +144,7 @@ int main(int argc, char **argv)
     TestPreviewMatchesCreatedId(profiles, store);
     TestNameValid();
     TestSetName(profiles);
+    TestRoundTrip(store);
 
     std::cout << gChecks << " checks, " << gFailures << " failures\n";
     return gFailures == 0 ? 0 : 1;

@@ -11,12 +11,6 @@ namespace rocklaunch
 
 namespace fs = std::filesystem;
 
-// Launcher-wide settings shared by every profile.
-struct LauncherConfig
-{
-    std::map<std::string, std::string> settings;
-};
-
 // Per-patch state persisted in a profile. Each patch owns its own section in the
 // profile JSON; the manager only reads/writes the enabled flag, concrete patches
 // may store extra fields later.
@@ -28,25 +22,25 @@ struct PatchState
 
 // A single game installation. One profile owns one install dir, its runner and patches.
 // id is generated and never changes; name is the optional tag the user gives it.
+// The runner is a (runnerName, runnerSource) pair: a name is only unique in its source.
 struct ProfileConfig
 {
     std::string id;
     std::string name;
     std::string gameId;
     fs::path installDir;
-    std::string runnerId;
+    std::string runnerName;
+    std::string runnerSource;
     fs::path prefixDir;
     std::map<std::string, PatchState> patches;
 };
 
-// JSON persistence for the launcher configuration and its per-installation profiles.
+// JSON persistence for the per-installation profiles under the launcher data dir.
 class ConfigStore
 {
 public:
-    explicit ConfigStore(fs::path configDir = DefaultConfigDir(),
-                         fs::path dataDir = DefaultDataDir());
+    explicit ConfigStore(fs::path dataDir = DefaultDataDir());
 
-    fs::path ConfigDir() const;
     fs::path DataDir() const;
     fs::path ProfilePath(const std::string &profileId) const;
     // True when profileId may be used to build a profile file name; the same
@@ -57,8 +51,6 @@ public:
     // Profile that already claims installDir, if any. Excludes excludedProfileId from the search.
     std::optional<std::string> ProfileUsingInstallDir(
         const fs::path &installDir, const std::string &excludedProfileId = {}) const;
-    LauncherConfig LoadLauncher() const;
-    void SaveLauncher(const LauncherConfig &config) const;
     ProfileConfig LoadProfile(const std::string &profileId) const;
     void SaveProfile(const ProfileConfig &profile) const;
     // Deletes the profile configuration and, when its prefix lives under the
@@ -66,7 +58,6 @@ public:
     // did not exist.
     bool DeleteProfile(const std::string &profileId) const;
 
-    static fs::path DefaultConfigDir();
     static fs::path DefaultDataDir();
 
 private:
@@ -75,7 +66,6 @@ private:
     // Removes prefixDir only when it lives under the launcher-managed prefixes dir.
     void RemovePrefixDir(const fs::path &prefixDir) const;
 
-    fs::path m_configDir;
     fs::path m_dataDir;
 };
 

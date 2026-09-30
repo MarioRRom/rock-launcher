@@ -4,362 +4,250 @@
 #include "rocklaunch/core/subprocess.h"
 #include "rocklaunch/core/utils/checksum.h"
 #include "rocklaunch/core/utils/downloader.h"
-#include "rocklaunch/core/utils/string_util.h"
+#include "rocklaunch/core/utils/file_lock.h"
+#include "rocklaunch/core/utils/path_util.h"
 
-#include <algorithm>
-#include <cctype>
 #include <fstream>
+#include <functional>
+#include <optional>
 #include <stdexcept>
-#include <sys/utsname.h>
-#include <unistd.h>
 
 namespace rocklaunch
+{
+
+namespace runner_install
 {
 
 namespace
 {
 
-bool IsTarball(const std::string &nameLower)
+constexpr const char *kScratchPrefix = ".tmp-download-";
+
+fs::path ScratchPath(const fs::path &targetDir)
 {
-    static const std::vector<std::string> kTarballExtensions = {
-        ".tar.gz", ".tar.xz", ".tar.zst", ".tar.bz2", ".tgz",
-    };
-    for (const std::string &ext : kTarballExtensions) {
-        if (EndsWith(nameLower, ext)) {
-            return true;
-        }
-    }
-    return false;
+    return targetDir.parent_path()
+        / (kScratchPrefix + RequirePathComponent(targetDir.filename().string()));
 }
 
-// Whole-token arch match: "x86_64" must not match "x86_64_v3".
-bool MatchesArch(const std::string &nameLower, const std::string &archLower)
+bool IsScratchDir(const std::string &name)
 {
-    std::size_t pos = nameLower.find(archLower);
-    while (pos != std::string::npos) {
-        std::size_t after = pos + archLower.size();
-        bool boundary = after >= nameLower.size()
-            || !(std::isalnum(static_cast<unsigned char>(nameLower[after]))
-                 || nameLower[after] == '_');
-        if (boundary) {
-            return true;
-        }
-        pos = nameLower.find(archLower, pos + 1);
-    }
-    return false;
+    return name.rfind(kScratchPrefix, 0) == 0;
 }
 
-// True when the name explicitly targets a different architecture.
-bool IsForOtherArch(const std::string &nameLower, const std::string &hostArch)
+Progress MakeStep(ProgressStage stage, const std::string &file, double percentage)
 {
-    static const std::vector<std::string> kKnownArches = {
-        "x86_64", "aarch64", "arm64", "amd64", "i386", "i686", "armv7l", "armv8l",
-    };
-    for (const std::string &arch : kKnownArches) {
-        if (arch != hostArch && MatchesArch(nameLower, arch)) {
-            return true;
-        }
-    }
-    return false;
+    Progress progress;
+    progress.stage = stage;
+    progress.file = file;
+    progress.percentage = percentage;
+    return progress;
 }
 
-// Preferred format when the same build ships in several compression formats.
-int TarballPriority(const std::string &nameLower)
+// Steps that measure no bytes announce themselves too; the opening tick is where
+// a cancel is honoured.
+void BeginStep(const ProgressCallback &onProgress, ProgressStage stage,
+               const std::string &file)
 {
-    if (EndsWith(nameLower, ".tar.gz")) {
-        return 0;
+    if (onProgress && !onProgress(MakeStep(stage, file, 0.0))) {
+        throw Cancelled(std::string(StageName(stage)) + " cancelled");
     }
-    if (EndsWith(nameLower, ".tar.xz")) {
-        return 1;
-    }
-    if (EndsWith(nameLower, ".tar.bz2")) {
-        return 2;
-    }
-    if (EndsWith(nameLower, ".tar.zst")) {
-        return 3;
-    }
-    if (EndsWith(nameLower, ".tgz")) {
-        return 4;
-    }
-    return 100;
 }
 
-} // anonymous namespace
-
-void RunnerInstaller::Install(const std::string &runnerName,
-                              const std::string &assetName,
-                              const fs::path &runnersDir,
-                              const RunnerCache &cache)
+void EndStep(const ProgressCallback &onProgress, ProgressStage stage,
+             const std::string &file)
 {
-    Logger logger;
+    if (onProgress) {
+        onProgress(MakeStep(stage, file, 100.0));
+    }
+}
 
-    // Install works strictly from the cached release list (apt-like).
-    // Match the exact tag; the repo comes from the release itself.
-    // The cache lives next to the runners dir: <dataDir>/runner_releases.json.
-    fs::path dataDir = runnersDir.parent_path();
-    std::vector<RunnerRelease> releases = cache.ReadAll(dataDir);
-    const RunnerRelease *release = ResolveRelease(releases, runnerName);
-    if (release == nullptr) {
+// An unset predicate is what keeps RunSubprocess blocking in waitpid: installing
+// one that can only answer false would wake every 50 ms for nothing.
+void RunExtract(const std::vector<std::string> &args, const ProgressCallback &onProgress,
+                ProgressStage stage, const std::string &file)
+{
+    const Progress step = MakeStep(stage, file, 0.0);
+    bool cancelRequested = false;
+    std::function<bool()> isCancelled;
+    if (onProgress) {
+        isCancelled = [&onProgress, &step, &cancelRequested] {
+            cancelRequested = !onProgress(step);
+            return cancelRequested;
+        };
+    }
+
+    const ExitInfo result = RunSubprocess(args, {}, {}, isCancelled);
+    if (cancelRequested) {
+        throw Cancelled(std::string(StageName(stage)) + " cancelled");
+    }
+    ThrowIfFailed(result, args);
+}
+
+// The hash is the first token of the first line.
+std::string ParseSha512SumFile(const fs::path &path)
+{
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        Logger().Error("RunnerInstall: cannot open file: " + path.string());
         throw std::runtime_error(
-            "No release named '" + runnerName + "' in cache. "
-            "Use 'runner search <query>' to browse available releases.");
-    }
-
-    // Use the canonical tag for paths and messages — the user may have typed
-    // a different case, and the folder must always match the upstream tag.
-    const std::string &tag = release->tag;
-
-    logger.Info("RunnerInstaller: installing " + tag);
-
-    // Resolve the asset to download.
-    std::string selectedAsset = assetName;
-    if (selectedAsset.empty()) {
-        std::optional<AssetInfo> autoAsset = SelectAsset(*release);
-        if (autoAsset.has_value()) {
-            selectedAsset = autoAsset->name;
-        }
-        if (selectedAsset.empty()) {
-            throw std::runtime_error(
-                "Cannot auto-detect asset for " + tag + ". "
-                "Use 'runner install <name> <asset>' to specify manually.");
-        }
-    }
-
-    AssetInfo asset =
-        Downloader::ResolveAsset(release->repo, release->tag, selectedAsset);
-
-    // Find the sha512sum asset from the release.
-    std::optional<AssetInfo> sha512Asset = FindSha512Asset(*release);
-    if (!sha512Asset.has_value()) {
-        throw std::runtime_error(
-            "No sha512sum asset found for " + release->tag + ". "
-            "Cannot verify download integrity.");
-    }
-
-    // Temp dir under runnersDir keeps the final rename on the same filesystem.
-    fs::path tmpDir = runnersDir / (".tmp-download-" + std::to_string(getpid()));
-    fs::create_directories(tmpDir);
-
-    try {
-        // Download tarball and its .sha512sum file.
-        fs::path tarballPath = tmpDir / asset.name;
-        Downloader::Fetch(asset.downloadUrl, tarballPath);
-        fs::path sha512Path = tmpDir / sha512Asset->name;
-        Downloader::Fetch(sha512Asset->downloadUrl, sha512Path);
-
-        // Verify the tarball against the expected hash.
-        std::string expectedHash = ParseSha512SumFile(sha512Path);
-        std::string actualHash = HashFile(tarballPath);
-        if (actualHash != expectedHash) {
-            logger.Error("RunnerInstaller: SHA-512 mismatch for " + asset.name);
-            throw std::runtime_error(
-                "SHA-512 mismatch for " + asset.name + "\n"
-                "  expected: " + expectedHash + "\n"
-                "  got:      " + actualHash);
-        }
-        logger.Debug("RunnerInstaller: SHA-512 verified for " + asset.name);
-
-        // Extract and move the top-level directory into place.
-        fs::path extractDir = tmpDir / "extracted";
-        fs::create_directories(extractDir);
-        RunSubprocess({"tar", "-xf", tarballPath.string(), "-C", extractDir.string()});
-
-        std::optional<fs::path> extractedDir;
-        for (const fs::directory_entry &entry : fs::directory_iterator(extractDir)) {
-            if (entry.is_directory()) {
-                extractedDir = entry.path();
-                break;
-            }
-        }
-        if (!extractedDir.has_value()) {
-            throw std::runtime_error("Extraction produced no directory");
-        }
-
-        fs::path finalPath = runnersDir / tag;
-        fs::remove_all(finalPath);
-        fs::rename(*extractedDir, finalPath);
-
-        fs::remove_all(tmpDir);
-
-        logger.Debug("RunnerInstaller: installed " + tag + " to "
-                     + finalPath.string());
-        logger.Info("RunnerInstaller: installed " + tag);
-    } catch (...) {
-        fs::remove_all(tmpDir);
-        throw;
-    }
-}
-
-void RunnerInstaller::Remove(const std::string &runnerName,
-                             const fs::path &runnersDir)
-{
-    Logger logger;
-
-    fs::path runnerDir = runnersDir / runnerName;
-    std::error_code isDirError;
-    if (!fs::is_directory(runnerDir, isDirError)) {
-        throw std::runtime_error("Runner not installed: " + runnerName);
-    }
-
-    // Safety check: ensure it's under the expected runners directory.
-    std::error_code canonError;
-    fs::path canonical = fs::canonical(runnerDir, canonError);
-    if (canonError) {
-        throw std::runtime_error("Cannot resolve runner path: " + runnerName);
-    }
-
-    std::error_code canonBaseError;
-    fs::path canonicalBase = fs::canonical(runnersDir, canonBaseError);
-    if (canonBaseError) {
-        throw std::runtime_error("Cannot resolve runners directory");
-    }
-
-    fs::path relative = canonical.lexically_relative(canonicalBase);
-    if (relative.empty() || relative.native().rfind("..", 0) == 0) {
-        throw std::runtime_error("Refusing to remove outside runners directory: "
-                                 + runnerName);
-    }
-
-    std::error_code removeError;
-    fs::remove_all(runnerDir, removeError);
-    if (removeError) {
-        throw std::runtime_error("Failed to remove runner: " + runnerName);
-    }
-
-    logger.Info("RunnerInstaller: removed " + runnerName);
-}
-
-bool RunnerInstaller::IsInstalled(const std::string &runnerName,
-                                  const fs::path &runnersDir) const
-{
-    std::error_code error;
-    return fs::is_directory(runnersDir / runnerName, error);
-}
-
-const RunnerRelease *RunnerInstaller::ResolveRelease(
-    const std::vector<RunnerRelease> &releases,
-    const std::string &runnerName)
-{
-    std::string lower = ToLower(runnerName);
-    for (const RunnerRelease &rr : releases) {
-        if (ToLower(rr.tag) == lower) {
-            return &rr;
-        }
-    }
-    return nullptr;
-}
-
-std::optional<AssetInfo> RunnerInstaller::SelectAsset(const RunnerRelease &release) const
-{
-    // Tarballs only; never .sha512sum or source archives.
-    std::vector<AssetInfo> candidates;
-    for (const AssetInfo &asset : release.assets) {
-        std::string nameLower = ToLower(asset.name);
-        if (IsTarball(nameLower)
-            && nameLower.find("sha512") == std::string::npos) {
-            candidates.push_back(asset);
-        }
-    }
-
-    if (candidates.size() == 1) {
-        return candidates[0];
-    }
-
-    auto filter = [](const std::vector<AssetInfo> &source, auto keep) {
-        std::vector<AssetInfo> result;
-        for (const AssetInfo &asset : source) {
-            if (keep(ToLower(asset.name))) {
-                result.push_back(asset);
-            }
-        }
-        return result;
-    };
-
-    // Match the host architecture token exactly.
-    std::string hostArch = ToLower(DetectHostArch());
-    std::vector<AssetInfo> matched = filter(
-        candidates, [&](const std::string &name) { return MatchesArch(name, hostArch); });
-    if (matched.size() == 1) {
-        return matched[0];
-    }
-
-    // No arch token matched: exclude assets for a different arch, then prefer
-    // the canonical compression format.
-    std::vector<AssetInfo> filtered = filter(
-        candidates, [&](const std::string &name) { return !IsForOtherArch(name, hostArch); });
-    if (filtered.size() == 1) {
-        return filtered[0];
-    }
-    if (filtered.size() > 1) {
-        std::stable_sort(filtered.begin(), filtered.end(),
-                         [](const AssetInfo &left, const AssetInfo &right) {
-                             return TarballPriority(ToLower(left.name))
-                                 < TarballPriority(ToLower(right.name));
-                         });
-        return filtered[0];
-    }
-
-    return std::nullopt;
-}
-
-std::string RunnerInstaller::DetectHostArch()
-{
-    struct utsname uts;
-    if (uname(&uts) == 0) {
-        return uts.machine;
-    }
-    return "x86_64";
-}
-
-std::optional<AssetInfo> RunnerInstaller::FindSha512Asset(
-    const RunnerRelease &release)
-{
-    std::vector<AssetInfo> candidates;
-    for (const AssetInfo &asset : release.assets) {
-        std::string nameLower = ToLower(asset.name);
-        if (EndsWith(nameLower, ".sha512sum")) {
-            candidates.push_back(asset);
-        }
-    }
-
-    if (candidates.size() == 1) {
-        return candidates[0];
-    }
-
-    if (candidates.size() > 1) {
-        std::string hostArch = ToLower(DetectHostArch());
-        std::vector<AssetInfo> matched;
-        for (const AssetInfo &asset : candidates) {
-            std::string nameLower = ToLower(asset.name);
-            if (MatchesArch(nameLower, hostArch)) {
-                matched.push_back(asset);
-            }
-        }
-        if (matched.size() == 1) {
-            return matched[0];
-        }
-    }
-
-    return std::nullopt;
-}
-
-std::string RunnerInstaller::ParseSha512SumFile(const fs::path &path)
-{
-    std::ifstream f(path);
-    if (!f.is_open()) {
-        throw std::runtime_error("Cannot open file: " + path.string());
+            "the sha512sum was not downloaded; check the URL in the release list");
     }
 
     std::string line;
-    if (std::getline(f, line) && !line.empty()) {
-        // sha512sum format: "<hash>  <filename>\n"
+    if (std::getline(file, line) && !line.empty()) {
         std::size_t spacePos = line.find(' ');
         if (spacePos != std::string::npos) {
             return line.substr(0, spacePos);
         }
         return line;
     }
-    throw std::runtime_error("Cannot parse sha512sum file: " + path.string());
+    Logger().Error("RunnerInstall: cannot parse sha512sum file: " + path.string());
+    throw std::runtime_error("it was empty; the release should ship a '<hash>  <name>' line");
 }
 
+// A release tarball holds exactly one top-level directory, the runner. Taking
+// whichever came first would install one of several at random.
+fs::path OnlyDirectory(const fs::path &parent)
+{
+    std::optional<fs::path> found;
+    for (const fs::directory_entry &entry : fs::directory_iterator(parent)) {
+        if (!entry.is_directory()) {
+            continue;
+        }
+        if (found.has_value()) {
+            Logger().Error("RunnerInstall: extraction produced more than one directory: "
+                           + entry.path().string());
+            throw std::runtime_error(
+                "a runner tarball holds exactly one top-level directory, so this one is "
+                "not a plain runner release");
+        }
+        found = entry.path();
+    }
+    if (!found.has_value()) {
+        Logger().Error("RunnerInstall: extraction produced no directory in " + parent.string());
+        throw std::runtime_error(
+            "a runner tarball holds one top-level directory, but the archive unpacked "
+            "into loose files");
+    }
+    return *found;
+}
+
+} // anonymous namespace
+
+void SweepAbandoned(const fs::path &runnersDir)
+{
+    Logger logger;
+    std::error_code iterationError;
+    for (fs::directory_iterator it(runnersDir, iterationError), end;
+         it != end; it.increment(iterationError)) {
+        if (!fs::is_directory(it->path(), iterationError)) {
+            continue;
+        }
+
+        const fs::path sourceDir = it->path();
+        for (fs::directory_iterator scan(sourceDir, iterationError), sourceEnd;
+             scan != sourceEnd; scan.increment(iterationError)) {
+            if (!IsScratchDir(scan->path().filename().string())) {
+                continue;
+            }
+
+            const std::string name = scan->path().filename().string();
+            const fs::path target = sourceDir / name.substr(std::string(kScratchPrefix).size());
+
+            // Held across the removal so a racing install keeps its fresh scratch
+            // dir. The lock file is never unlinked: that would split the lock in two.
+            PathLock probe(target);
+            if (!probe.Acquired()) {
+                continue;
+            }
+
+            logger.Debug("RunnerInstall: removing abandoned " + scan->path().string());
+            fs::remove_all(scan->path(), iterationError);
+            if (iterationError) {
+                logger.Warn("RunnerInstall: cannot remove abandoned scratch "
+                            + scan->path().string() + ": " + iterationError.message());
+            }
+        }
+    }
+}
+
+void Run(const Request &request, ProgressCallback onProgress)
+{
+    Logger logger;
+    const fs::path &targetDir = request.targetDir;
+    const std::string name = targetDir.filename().string();
+
+    // Both names come from the release API and become path components below: a separator
+    // would place the download outside the scratch dir, and the hash check is downstream.
+    if (!IsPathComponent(request.assetName)) {
+        Logger().Error("RunnerInstall: release asset name is not a plain file name: '"
+                       + request.assetName + "'");
+        throw std::runtime_error(
+            "a name with a path separator would unpack outside the scratch dir");
+    }
+    if (!IsPathComponent(request.sha512Name)) {
+        Logger().Error("RunnerInstall: release hash name is not a plain file name: '"
+                       + request.sha512Name + "'");
+        throw std::runtime_error(
+            "a name with a path separator would unpack outside the scratch dir");
+    }
+
+    // The install ends in remove_all + rename on the target, so two overlapping
+    // installs of one runner would destroy each other.
+    PathLock lock(targetDir);
+    if (!lock.Acquired()) {
+        logger.Warn("RunnerInstall: " + name + " is already being installed");
+        throw std::runtime_error(
+            "another process holds " + PathLock::LockPath(targetDir).string()
+            + "\n  wait for it to finish, or remove the lock if no install is running");
+    }
+
+    // Beside the target so the final rename stays on one filesystem.
+    const fs::path scratchDir = ScratchPath(targetDir);
+    fs::remove_all(scratchDir);
+    fs::create_directories(scratchDir);
+
+    logger.Info("RunnerInstall: installing " + name);
+
+    try {
+        const fs::path tarballPath = scratchDir / request.assetName;
+        const fs::path sha512Path = scratchDir / request.sha512Name;
+        Downloader::Fetch(request.assetUrl, tarballPath, onProgress);
+        Downloader::Fetch(request.sha512Url, sha512Path, onProgress);
+
+        BeginStep(onProgress, ProgressStage::Verifying, request.assetName);
+        const std::string expectedHash = ParseSha512SumFile(sha512Path);
+        const std::string actualHash = HashFile(tarballPath);
+        if (actualHash != expectedHash) {
+            logger.Error("RunnerInstall: SHA-512 mismatch for " + request.assetName);
+            throw std::runtime_error(
+                "SHA-512 mismatch for " + request.assetName
+                + "\n  expected: " + expectedHash
+                + "\n  got:      " + actualHash
+                + "\n  the download is corrupt or the release was rebuilt; nothing installed");
+        }
+        EndStep(onProgress, ProgressStage::Verifying, request.assetName);
+
+        BeginStep(onProgress, ProgressStage::Extracting, request.assetName);
+        const fs::path extractDir = scratchDir / "extracted";
+        fs::create_directories(extractDir);
+        RunExtract({ "tar", "-xf", tarballPath.string(), "-C", extractDir.string() },
+                   onProgress, ProgressStage::Extracting, request.assetName);
+        const fs::path extracted = OnlyDirectory(extractDir);
+        EndStep(onProgress, ProgressStage::Extracting, request.assetName);
+
+        BeginStep(onProgress, ProgressStage::Installing, name);
+        fs::remove_all(targetDir);
+        fs::rename(extracted, targetDir);
+        fs::remove_all(scratchDir);
+        EndStep(onProgress, ProgressStage::Installing, name);
+
+        logger.Info("RunnerInstall: installed " + name + " to " + targetDir.string());
+    } catch (...) {
+        fs::remove_all(scratchDir);
+        throw;
+    }
+}
+
+} // namespace runner_install
 } // namespace rocklaunch

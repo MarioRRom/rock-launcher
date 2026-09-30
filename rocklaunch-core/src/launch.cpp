@@ -2,11 +2,10 @@
 
 #include "rocklaunch/core/launch_context.h"
 #include "rocklaunch/core/logger.h"
+#include "rocklaunch/core/runners/runners.h"
+#include "rocklaunch/core/subprocess.h"
 
-#include <cstdlib>
 #include <stdexcept>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <unistd.h>
 #include <utility>
 
@@ -16,47 +15,12 @@ namespace rocklaunch
 namespace
 {
 
-int RunProcess(const std::vector<std::string> &command, const std::vector<std::string> &environment)
-{
-    pid_t child = fork();
-    if (child == -1) {
-        return -1;
-    }
-
-    if (child == 0) {
-        for (const std::string &variable : environment) {
-            std::size_t separator = variable.find('=');
-            if (separator != std::string::npos) {
-                setenv(variable.substr(0, separator).c_str(),
-                       variable.substr(separator + 1).c_str(), 1);
-            }
-        }
-
-        std::vector<char *> argv;
-        argv.reserve(command.size() + 1);
-        for (const std::string &argument : command) {
-            argv.push_back(const_cast<char *>(argument.c_str()));
-        }
-        argv.push_back(nullptr);
-
-        execvp(command.front().c_str(), argv.data());
-        _exit(127);
-    }
-
-    int status = 0;
-    if (waitpid(child, &status, 0) == -1) {
-        return -1;
-    }
-
-    return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
-}
-
 // Proton builds ship binaries under files/ (GE-Proton) or dist/ (stock Steam
 // Proton). Returns the first existing candidate for binary, or the dist/
 // fallback path.
-fs::path ProtonBinaryFor(const Runner &runner, const char *binary)
+fs::path ProtonBinaryFor(const RunnerRef &runner, const char *binary)
 {
-    for (const fs::path &layout : { "files", "dist" }) {
+    for (const char *layout : { "files", "dist" }) {
         fs::path candidate = runner.rootDir / layout / "bin" / binary;
         std::error_code error;
         if (fs::is_regular_file(candidate, error)) {
@@ -69,9 +33,9 @@ fs::path ProtonBinaryFor(const Runner &runner, const char *binary)
 
 // The wine binary used to configure a prefix. GE-Proton ships under files/;
 // stock Steam Proton uses dist/.
-fs::path WineBinaryFor(const Runner &runner)
+fs::path WineBinaryFor(const RunnerRef &runner)
 {
-    if (runner.type == RunnerType::Wine) {
+    if (runner.kind == kRunnerKindWine) {
         return runner.executable;
     }
 
@@ -80,14 +44,24 @@ fs::path WineBinaryFor(const Runner &runner)
 
 // The directory a runner actually uses as WINEPREFIX inside prefixDir. The
 // proton script uses <prefixDir>/pfx; Wine runners use the directory directly.
-fs::path WinePrefixFor(const fs::path &prefixDir, const Runner &runner)
+fs::path WinePrefixFor(const fs::path &prefixDir, const RunnerRef &runner)
 {
-    return runner.type == RunnerType::Proton ? prefixDir / "pfx" : prefixDir;
+    return runner.kind == kRunnerKindProton ? prefixDir / "pfx" : prefixDir;
 }
 
 } // namespace
 
-std::vector<std::string> EnsurePrefix(const fs::path &prefixDir, const Runner &runner)
+RunnerRef ResolveRunner(const ProfileConfig &profile)
+{
+    std::optional<RunnerRef> runner = Runners::Find(profile.runnerName, profile.runnerSource);
+    if (!runner.has_value()) {
+        throw std::runtime_error("Runner not installed: " + profile.runnerSource
+                                 + "/" + profile.runnerName);
+    }
+    return *runner;
+}
+
+std::vector<std::string> EnsurePrefix(const fs::path &prefixDir, const RunnerRef &runner)
 {
     Logger logger;
     std::vector<std::string> warnings;
@@ -101,7 +75,10 @@ std::vector<std::string> EnsurePrefix(const fs::path &prefixDir, const Runner &r
     fs::create_directories(winePrefix, error);
     if (error) {
         logger.Error("Launch: unable to create prefix at " + winePrefix.string());
-        throw std::runtime_error("Unable to create prefix");
+        throw std::runtime_error(
+            "Unable to create prefix at " + winePrefix.string() + ": " + error.message()
+            + "\n  check free space and write permission on "
+            + winePrefix.parent_path().string());
     }
 
     std::vector<LaunchCommand> commands = BuildPrefixCommands(prefixDir, runner);
@@ -113,12 +90,11 @@ std::vector<std::string> EnsurePrefix(const fs::path &prefixDir, const Runner &r
     }
 
     for (const LaunchCommand &command : commands) {
-        int result = RunProcess(command.command, command.environment);
-        if (result != 0) {
-            logger.Warn("Launch: Audio=alsa reg add failed (exit "
-                        + std::to_string(result) + ")");
-            warnings.emplace_back("Audio=alsa failed (exit "
-                                  + std::to_string(result) + ")");
+        const std::string reason =
+            FailureReason(RunSubprocess(command.command, {}, command.environment));
+        if (!reason.empty()) {
+            logger.Warn("Launch: Audio=alsa reg add failed (" + reason + ")");
+            warnings.emplace_back("Audio=alsa failed (" + reason + ")");
             break;
         }
     }
@@ -126,7 +102,7 @@ std::vector<std::string> EnsurePrefix(const fs::path &prefixDir, const Runner &r
     return warnings;
 }
 
-std::vector<LaunchCommand> BuildPrefixCommands(const fs::path &prefixDir, const Runner &runner)
+std::vector<LaunchCommand> BuildPrefixCommands(const fs::path &prefixDir, const RunnerRef &runner)
 {
     fs::path wine = WineBinaryFor(runner);
     std::error_code error;
@@ -150,12 +126,13 @@ std::vector<LaunchCommand> BuildPrefixCommands(const fs::path &prefixDir, const 
     return commands;
 }
 
-std::optional<LaunchCommand> BuildWineKillCommand(const fs::path &prefixDir, const Runner &runner)
+std::optional<LaunchCommand> BuildWineKillCommand(const fs::path &prefixDir,
+                                                 const RunnerRef &runner)
 {
     // wineserver sits next to wine for Wine runners; Proton builds ship it under
     // files/ or dist/, the same layouts WineBinaryFor() probes.
     std::vector<fs::path> candidates;
-    if (runner.type == RunnerType::Wine) {
+    if (runner.kind == kRunnerKindWine) {
         if (!runner.executable.empty()) {
             candidates.push_back(runner.executable.parent_path() / "wineserver");
         }
@@ -183,12 +160,12 @@ std::optional<LaunchCommand> BuildWineKillCommand(const fs::path &prefixDir, con
 }
 
 LaunchCommand BuildLaunchCommand(const ProfileConfig &profile,
-                                 const Runner &runner,
+                                 const RunnerRef &runner,
                                  const IGameProfile &game)
 {
     LaunchCommand launch;
     fs::path executable = game.Executable(profile.installDir);
-    if (runner.type == RunnerType::Proton) {
+    if (runner.kind == kRunnerKindProton) {
         launch.command = { runner.executable.string(), "run", executable.string() };
     } else {
         launch.command = { runner.executable.string(), executable.string() };
@@ -197,13 +174,14 @@ LaunchCommand BuildLaunchCommand(const ProfileConfig &profile,
     LaunchContext context;
     context.installDir = profile.installDir;
     context.prefixDir = profile.prefixDir;
-    context.runnerId = runner.id;
+    context.runnerName = runner.name;
+    context.runnerSource = runner.source;
 
     // Games expect to be launched from their install directory; Rocksmith reads
     // and writes Rocksmith.ini relative to the working directory.
     launch.workingDirectory = profile.installDir;
 
-    if (runner.type == RunnerType::Wine) {
+    if (runner.kind == kRunnerKindWine) {
         launch.environment.emplace_back("WINEPREFIX=" + profile.prefixDir.string());
     } else {
         // Proton runs the game inside the prefix; point it at a real directory even without Steam.

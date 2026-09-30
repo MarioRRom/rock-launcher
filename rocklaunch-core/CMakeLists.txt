@@ -10,15 +10,15 @@ add_library(rocklaunch-core
     src/patches/patch.cpp
     src/patches/patch_manager.cpp
     src/rocksmith2014_remastered_profile.cpp
-    src/runners/launcher_runner_source.cpp
-    src/runners/runner.cpp
-    src/runners/runner_cache.cpp
+    src/runners/runner_assets.cpp
     src/runners/runner_installer.cpp
-    src/runners/runner_manager.cpp
-    src/runners/steam_runner_source.cpp
-    src/runners/system_wine_source.cpp
+    src/runners/runner_releases.cpp
+    src/runners/runner_scan.cpp
+    src/runners/runners.cpp
+    src/utils/atomic_file.cpp
     src/utils/checksum.cpp
     src/utils/downloader.cpp
+    src/utils/file_lock.cpp
     src/utils/ini_editor.cpp
     src/utils/psarc_util.cpp
     src/utils/subprocess.cpp
@@ -33,9 +33,11 @@ target_include_directories(rocklaunch-core
 
 target_link_libraries(rocklaunch-core
     PRIVATE
+        CURL::libcurl
         OpenSSL::Crypto
-        nlohmann_json::nlohmann_json
         ZLIB::ZLIB
+    PUBLIC
+        nlohmann_json::nlohmann_json
 )
 
 target_compile_features(rocklaunch-core PUBLIC cxx_std_17)

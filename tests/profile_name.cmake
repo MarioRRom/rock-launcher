@@ -5,7 +5,6 @@ endif()
 function(RunCli expectedResult)
     execute_process(
         COMMAND "${CMAKE_COMMAND}" -E env
-            "XDG_CONFIG_HOME=${TEST_ROOT}/config"
             "XDG_DATA_HOME=${TEST_ROOT}/data"
             "${ROCKLAUNCH_CLI}" ${ARGN}
         RESULT_VARIABLE result
@@ -35,7 +34,6 @@ endfunction()
 function(RunCliClearName expectedResult)
     execute_process(
         COMMAND "${CMAKE_COMMAND}" -E env
-            "XDG_CONFIG_HOME=${TEST_ROOT}/config"
             "XDG_DATA_HOME=${TEST_ROOT}/data"
             "${ROCKLAUNCH_CLI}" profile rename rocksmith2014remastered-1 ""
         RESULT_VARIABLE result
@@ -62,7 +60,7 @@ if (NOT "${output}" MATCHES "Created profile: rocksmith2014remastered-1")
     message(FATAL_ERROR "The first profile did not get the first generated id")
 endif()
 
-file(READ "${TEST_ROOT}/data/rocksmith-launcher/profiles/rocksmith2014remastered-1.json" profileJson)
+file(READ "${TEST_ROOT}/data/rock-launcher/profiles/rocksmith2014remastered-1.json" profileJson)
 if (NOT "${profileJson}" MATCHES "\"name\": \"\"")
     message(FATAL_ERROR "A new profile must persist an empty name")
 endif()

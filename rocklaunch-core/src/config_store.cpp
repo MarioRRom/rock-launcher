@@ -1,5 +1,8 @@
 #include "rocklaunch/core/config_store.h"
 
+#include "rocklaunch/core/logger.h"
+#include "rocklaunch/core/utils/atomic_file.h"
+
 #include <algorithm>
 #include <cstdlib>
 #include <fstream>
@@ -30,15 +33,9 @@ bool IsUnder(const fs::path &path, const fs::path &root)
 
 } // namespace
 
-ConfigStore::ConfigStore(fs::path configDir, fs::path dataDir)
-    : m_configDir(std::move(configDir))
-    , m_dataDir(std::move(dataDir))
+ConfigStore::ConfigStore(fs::path dataDir)
+    : m_dataDir(std::move(dataDir))
 {
-}
-
-fs::path ConfigStore::ConfigDir() const
-{
-    return m_configDir;
 }
 
 fs::path ConfigStore::DataDir() const
@@ -94,37 +91,6 @@ std::optional<std::string> ConfigStore::ProfileUsingInstallDir(
     return std::nullopt;
 }
 
-LauncherConfig ConfigStore::LoadLauncher() const
-{
-    fs::path configPath = m_configDir / "config.json";
-    std::ifstream input(configPath);
-    if (!input.is_open()) {
-        return {};
-    }
-
-    nlohmann::json json;
-    input >> json;
-
-    LauncherConfig config;
-    config.settings = json.value("settings", std::map<std::string, std::string>());
-    return config;
-}
-
-void ConfigStore::SaveLauncher(const LauncherConfig &config) const
-{
-    fs::create_directories(m_configDir);
-
-    nlohmann::json json = {
-        { "settings", config.settings },
-    };
-    std::ofstream output(m_configDir / "config.json");
-    if (!output.is_open()) {
-        throw std::runtime_error("Unable to write launcher configuration");
-    }
-
-    output << json.dump(4) << '\n';
-}
-
 ProfileConfig ConfigStore::LoadProfile(const std::string &profileId) const
 {
     std::ifstream input(ProfilePath(profileId));
@@ -140,7 +106,8 @@ ProfileConfig ConfigStore::LoadProfile(const std::string &profileId) const
     profile.name = json.value("name", "");
     profile.gameId = json.value("game_id", "rocksmith2014remastered");
     profile.installDir = json.value("install_dir", "");
-    profile.runnerId = json.value("runner_id", "");
+    profile.runnerName = json.value("runner_name", "");
+    profile.runnerSource = json.value("runner_source", "");
     profile.prefixDir = json.value("prefix_dir", "");
     if (json.contains("patches") && json["patches"].is_object()) {
         for (const auto &entry : json["patches"].items()) {
@@ -179,17 +146,16 @@ void ConfigStore::SaveProfile(const ProfileConfig &profile) const
         { "name", profile.name },
         { "game_id", profile.gameId },
         { "install_dir", profile.installDir.string() },
-        { "runner_id", profile.runnerId },
+        { "runner_name", profile.runnerName },
+        { "runner_source", profile.runnerSource },
         { "prefix_dir", profile.prefixDir.string() },
         { "patches", patchesJson },
     };
 
-    std::ofstream output(ProfilePath(profile.id));
-    if (!output.is_open()) {
-        throw std::runtime_error("Unable to write profile: " + profile.id);
-    }
-
-    output << json.dump(4) << '\n';
+    // A profile JSON that cannot be parsed is unrecoverable, so it is renamed into
+    // place from a sibling — which has no ".json", so ListProfileIds ignores it.
+    WriteFileAtomic(ProfilePath(profile.id), json.dump(4) + "\n",
+                    "ConfigStore: profile", "the profile was not saved");
 }
 
 bool ConfigStore::DeleteProfile(const std::string &profileId) const
@@ -260,31 +226,16 @@ void ConfigStore::ValidateProfileId(const std::string &profileId) const
     }
 }
 
-fs::path ConfigStore::DefaultConfigDir()
-{
-    fs::path configHome = EnvironmentPath("XDG_CONFIG_HOME");
-    if (!configHome.empty()) {
-        return configHome / "rocksmith-launcher";
-    }
-
-    fs::path homeDir = EnvironmentPath("HOME");
-    if (!homeDir.empty()) {
-        return homeDir / ".config" / "rocksmith-launcher";
-    }
-
-    throw std::runtime_error("Neither XDG_CONFIG_HOME nor HOME is set");
-}
-
 fs::path ConfigStore::DefaultDataDir()
 {
     fs::path dataHome = EnvironmentPath("XDG_DATA_HOME");
     if (!dataHome.empty()) {
-        return dataHome / "rocksmith-launcher";
+        return dataHome / "rock-launcher";
     }
 
     fs::path homeDir = EnvironmentPath("HOME");
     if (!homeDir.empty()) {
-        return homeDir / ".local" / "share" / "rocksmith-launcher";
+        return homeDir / ".local" / "share" / "rock-launcher";
     }
 
     throw std::runtime_error("Neither XDG_DATA_HOME nor HOME is set");

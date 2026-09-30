@@ -1,4 +1,4 @@
-<h1 align="center">Rocksmith Launcher</h1>
+<h1 align="center">Rock Launcher</h1>
 <p align="center">Play Rocksmith 2014 on Linux without the headaches</p>
 
 > [!CAUTION]
@@ -41,13 +41,14 @@ does the rest.
 
 ## Prerequisites
 
-**Build:** CMake, C++17 compiler, OpenSSL, zlib,
+**Build:** CMake, C++17 compiler, OpenSSL, zlib, libcurl ≥ 7.85
+(`libcurl4-openssl-devel` / `libcurl-devel`),
 [nlohmann/json](https://github.com/nlohmann/json) (fetched automatically),
 Qt6 (`qt6-qtdeclarative-devel`, `qt6-qtshadertools-devel`).
 
 **Runtime:** `7z` ([p7zip](https://p7zip.sourceforge.net/)) —
 `sudo apt install p7zip-full` / `sudo pacman -S p7zip`.
-`curl` — usually pre-installed on Linux.
+`tar` — usually pre-installed on Linux.
 Qt6 Quick runtime (`qt6-qtdeclarative` on Fedora,
 `qml6-module-qtquick` on Ubuntu/Debian).
 
@@ -65,8 +66,8 @@ ctest --test-dir build
 ./build/rocklaunch-cli/rocklaunch-cli --help
 ```
 
-Config and logs are created automatically on first run under
-`~/.config/rocksmith-launcher/` and `~/.local/share/rocksmith-launcher/`.
+Profiles and logs are created automatically on first run under
+`~/.local/share/rock-launcher/`.
 
 ### Contributing
 
