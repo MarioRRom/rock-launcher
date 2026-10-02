@@ -3,8 +3,6 @@
 #include "rocklaunch/core/launch.h"
 #include "rocklaunch/core/launch_session.h"
 #include "rocklaunch/core/profile_manager.h"
-#include "rocklaunch/core/runners/runner_manager.h"
-#include "rocklaunch/core/rocksmith2014_remastered_profile.h"
 
 #include <QObject>
 #include <QProcess>
@@ -52,7 +50,7 @@ class LaunchController final : public QObject
 public:
     explicit LaunchController(rocklaunch::ProfileManager *manager,
                               ProfileModel *profileModel,
-                              rocklaunch::RunnerManager *runners,
+                              const rocklaunch::IGameProfile *gameProfile,
                               QObject *parent = nullptr);
 
     static LaunchController *create(QQmlEngine *qmlEngine, QJSEngine *jsEngine)
@@ -90,9 +88,7 @@ private:
 
     rocklaunch::ProfileManager *m_profiles = nullptr;
     ProfileModel *m_profileModel = nullptr;
-    // Shared with RunnerModel: one discovery pass.
-    rocklaunch::RunnerManager *m_runners = nullptr;
-    rocklaunch::Rocksmith2014RemasteredProfile m_gameProfile;
+    const rocklaunch::IGameProfile *m_gameProfile = nullptr;
     rocklaunch::LaunchSession m_session;
 
     // Prefix setup commands (BuildPrefixCommands) run one QProcess at a time;
@@ -103,7 +99,7 @@ private:
     QTimer m_stopTimer;
 
     rocklaunch::ProfileConfig m_pendingProfile;
-    std::optional<rocklaunch::Runner> m_pendingRunner;
+    std::optional<rocklaunch::RunnerRef> m_pendingRunner;
     QString m_statusDetail;
     inline static LaunchController *s_instance = nullptr;
 };

@@ -5,14 +5,16 @@
 
 #include <QDebug>
 
+#include <exception>
+
 LaunchController::LaunchController(rocklaunch::ProfileManager *manager,
                                    ProfileModel *profileModel,
-                                   rocklaunch::RunnerManager *runners,
+                                   const rocklaunch::IGameProfile *gameProfile,
                                    QObject *parent)
     : QObject(parent)
     , m_profiles(manager)
     , m_profileModel(profileModel)
-    , m_runners(runners)
+    , m_gameProfile(gameProfile)
     , m_session([this](rocklaunch::SessionState, const std::string &detail) {
         m_statusDetail = QString::fromStdString(detail);
         emit launchStateChanged();
@@ -65,7 +67,7 @@ void LaunchController::launch()
 
 void LaunchController::StartLaunch()
 {
-    if (!m_profiles || !m_profileModel || !m_runners) {
+    if (!m_profiles || !m_profileModel || !m_gameProfile) {
         emit launchError("Controller not initialized");
         return;
     }
@@ -84,7 +86,7 @@ void LaunchController::StartLaunch()
 
     // Pre-flight checks are core business rules shared with the CLI.
     const rocklaunch::ProfileValidation validation =
-        m_profiles->ValidateProfile(profileId.toStdString(), *m_runners);
+        m_profiles->ValidateProfile(profileId.toStdString());
     if (!validation.isValid) {
         QString detail;
         for (const rocklaunch::ValidationIssue &issue : validation.issues) {
@@ -104,9 +106,10 @@ void LaunchController::StartLaunch()
         return;
     }
     m_pendingProfile = *profile;
-    m_pendingRunner = m_runners->Find(m_pendingProfile.runnerId);
-    if (!m_pendingRunner.has_value()) {
-        emit launchError("Runner not found: " + QString::fromStdString(m_pendingProfile.runnerId));
+    try {
+        m_pendingRunner = rocklaunch::ResolveRunner(m_pendingProfile);
+    } catch (const std::exception &error) {
+        emit launchError(QString::fromUtf8(error.what()));
         return;
     }
 
@@ -135,7 +138,7 @@ void LaunchController::RunNextPrefixCommand()
 void LaunchController::StartGame()
 {
     const rocklaunch::LaunchCommand launchCommand =
-        rocklaunch::BuildLaunchCommand(m_pendingProfile, *m_pendingRunner, m_gameProfile);
+        rocklaunch::BuildLaunchCommand(m_pendingProfile, *m_pendingRunner, *m_gameProfile);
 
     // Create the handle first so its Qt signals can drive the session, then hand
     // ownership to LaunchSession (the handle's QProcess lives as long as the session).

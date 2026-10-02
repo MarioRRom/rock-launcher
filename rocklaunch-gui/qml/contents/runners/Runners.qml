@@ -32,6 +32,13 @@ Rectangle {
     anchors.margins: 30
     color: "transparent"
 
+    // Core names a source after its repo, so these two strings must match
+    // Runners::Repos(); the label is display only.
+    readonly property string geProtonSource: "proton-ge-custom"
+    readonly property string cachyosSource: "Proton-CachyOS"
+
+    Component.onCompleted: RunnerModel.currentSource = geProtonSource
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 12
@@ -42,6 +49,7 @@ Rectangle {
         //  | |       Header        | |
         //  | `---------------------' |
         //  `-------------------------'
+
         RowLayout {
             id: headerRow
             Layout.preferredHeight: 40
@@ -49,25 +57,22 @@ Rectangle {
 
             // Ge-Proton button
             IconTextButton {
-                actived: true
+                actived: RunnerModel.currentSource === root.geProtonSource
                 text: "GE-Proton"
                 icon: "glass-full"
                 textColorActive: Theme.mauve
                 size: parent.height
-                onClicked: {
-                    // TODO: wire to C++ Ge-Proton list
-                }
+                onClicked: RunnerModel.currentSource = root.geProtonSource
             }
 
             // Proton-Cachyos button
             IconTextButton {
+                actived: RunnerModel.currentSource === root.cachyosSource
                 text: "Proton-Cachyos"
                 icon: "cachyos"
                 textColorActive: Theme.sky
                 size: parent.height
-                onClicked: {
-                    // TODO: wire to C++ Proton-Cachyos list
-                }
+                onClicked: RunnerModel.currentSource = root.cachyosSource
             }
 
             // separator
@@ -100,14 +105,25 @@ Rectangle {
                 selectByMouse: true
                 leftPadding: 16 + searchIcon.width
                 rightPadding: 16
+                onTextChanged: RunnerModel.search = text
             }
 
             // reload button
             IconButton {
                 icon: "refresh"
                 size: parent.height
-                onClicked: {
-                    // TODO: reload runners
+                enabled: !RunnerJobs.busy
+                onClicked: RunnerJobs.refresh(true)
+
+                HoverHandler { id: reloadHover }
+
+                StyledTooltip {
+                    visible: reloadHover.hovered
+                    label: "Warning:"
+                    labelColor: Theme.red
+                    delay: 200
+                    implicitWidth: 300
+                    text: "Reload the releases from GitHub. Requests are limited to 60 per hour."
                 }
             }
         }
@@ -126,11 +142,25 @@ Rectangle {
         //  | `---------------------' |
         //  `-------------------------'
 
-        // Runner list
-        RunnerList {
-            id: runnerList
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
+
+            // Runner list
+            RunnerList {
+                id: runnerList
+                anchors.fill: parent
+                opacity: runnerList.count > 0 ? 1 : 0
+                visible: opacity > 0
+                Behavior on opacity { NumberAnimation { duration: 250 } }
+            }
+
+            RunnerEmpty {
+                anchors.fill: parent
+                opacity: runnerList.count > 0 ? 0 : 1
+                visible: opacity > 0
+                Behavior on opacity { NumberAnimation { duration: 250 } }
+            }
         }
     }
 }

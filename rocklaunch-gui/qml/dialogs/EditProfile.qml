@@ -35,6 +35,14 @@ Rectangle {
 
     readonly property int margin: 20
 
+    Component.onCompleted: loadRunner()
+
+    function loadRunner() {
+        const profile = ProfileModel.profileEntry(root.profileId)
+        runnerPicker.currentRunner = profile.runnerName
+        runnerPicker.currentRunnerSource = profile.runnerSource
+    }
+
     implicitWidth: 620
     implicitHeight: dialogColumn.implicitHeight + margin * 2
     radius: 14
@@ -61,12 +69,42 @@ Rectangle {
         //  | `---------------------' |
         //  `-------------------------'
 
-        Text {
+        RowLayout {
             Layout.fillWidth: true
-            text: root.isNew ? "New Profile" : "Edit Profile"
-            font.pixelSize: 18
-            font.bold: true
-            color: Theme.text
+            spacing: 8
+
+            Text {
+                Layout.fillWidth: true
+                text: root.isNew ? "New Profile" : "Edit Profile"
+                font.pixelSize: 18
+                font.bold: true
+                color: Theme.text
+            }
+
+            SvgIcon {
+                id: profileHelp
+                icon: "help-circle"
+                size: 20
+                color: helpArea.containsMouse ? Theme.text : Theme.subtext0
+
+                MouseArea {
+                    id: helpArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+
+                    StyledTooltip {
+                        visible: helpArea.containsMouse
+                        x: profileHelp.width + 4 - width
+                        y: profileHelp.height + 6
+                        delay: 200
+                        label: "Info:"
+                        labelColor: Theme.blue
+                        implicitWidth: 300
+                        text: "A profile is one installation of the game: it has its own prefix and configuration. By design, a game path belongs to exactly one profile."
+                    }
+                }
+            }
         }
 
         ColumnLayout {
@@ -119,7 +157,7 @@ Rectangle {
 
             //  .-------------------------.
             //  | .---------------------. |
-            //  | |      Runner        | |
+            //  | |       Runner        | |
             //  | `---------------------' |
             //  `-------------------------'
 
@@ -133,15 +171,18 @@ Rectangle {
                     color: Theme.text
                 }
 
-                // TODO: wire currentRunner to the profile's runnerId
                 ExpandableList {
                     id: runnerPicker
 
                     property string currentRunner: ""
-                    property var runners: [ "GE-Proton11-5", "GE-Proton11-6", "GE-Proton11-7", "cachyos-11.0-20260703-slr" ] // TODO: temporal placeholder
+                    property string currentRunnerSource: ""
+
+                    readonly property string currentLabel: currentRunner === ""
+                        ? "wine / proton"
+                        : currentRunner + " (" + currentRunnerSource + ")"
 
                     Layout.fillWidth: true
-                    headerText: currentRunner !== "" ? currentRunner : "wine / proton"
+                    headerText: currentLabel
                     headerHeight: 38
                     headerTextSize: 14
                     headerTextColor: Theme.text
@@ -152,21 +193,25 @@ Rectangle {
                     boxBorderWidth: 1
                     expandedHeight: 116
 
-                    listModel: runners
+                    listModel: RunnerModel.installedRunners
                     listDelegate: IconTextButton {
-                        required property string modelData
+                        required property var modelData
 
                         width: ListView.view.width
-                        text: modelData
-                        icon: "glass-full"
+                        text: modelData.name + " (" + modelData.source + ")"
+                        icon: ({ "proton-ge-custom": "glass-full",
+                            "Proton-CachyOS": "cachyos" }[modelData.source]
+                        ) || "glass-full"
                         size: 36
                         textSize: 14
                         borderRadius: 10
                         textColorActive: Theme.mauve
                         bgColorActive: "transparent"
-                        actived: modelData === runnerPicker.currentRunner
+                        actived: modelData.name === runnerPicker.currentRunner
+                            && modelData.source === runnerPicker.currentRunnerSource
                         onClicked: {
-                            runnerPicker.currentRunner = modelData
+                            runnerPicker.currentRunner = modelData.name
+                            runnerPicker.currentRunnerSource = modelData.source
                             runnerPicker.actived = false
                         }
                     }
@@ -287,16 +332,17 @@ Rectangle {
                 text: "Save"
                 icon: "device-floppy"
                 size: 34
-                enabled: root.nameValid
+                // close() leaves this clickable through the fade-out, and a
+                // second click would create a second profile.
+                enabled: root.nameValid && DialogController.currentDialog === "editProfile"
                 bgColor: Theme.green
                 bgHoverColor: Qt.lighter(Theme.green, 1.08)
                 bgPressedColor: Qt.lighter(Theme.green, 1.16)
                 textColor: Theme.base
                 onClicked: {
-                    const saved = root.isNew
-                        ? ProfileModel.createProfile(nameEdit.text) !== ""
-                        : ProfileModel.renameProfile(root.profileId, nameEdit.text)
-                    if (saved)
+                    if (ProfileModel.saveProfile(
+                        root.profileId, nameEdit.text,
+                        runnerPicker.currentRunner, runnerPicker.currentRunnerSource) !== "")
                         DialogController.editProfile.close()
                 }
             }
@@ -317,6 +363,7 @@ Rectangle {
             if (value === undefined)
                 return
             nameEdit.text = root.isNew ? "" : ProfileModel.profileName(root.profileId)
+            root.loadRunner()
         }
     }
 }

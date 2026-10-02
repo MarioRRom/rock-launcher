@@ -40,6 +40,7 @@ class DialogController final : public QObject
     QML_SINGLETON
     Q_PROPERTY(QString currentDialog READ currentDialog NOTIFY currentDialogChanged)
     Q_PROPERTY(DialogState *editProfile READ editProfile CONSTANT)
+    Q_PROPERTY(QString errorMessage READ errorMessage NOTIFY errorMessageChanged)
 
 public:
     explicit DialogController(QObject *parent);
@@ -60,15 +61,20 @@ public:
 
     QString currentDialog() const;
     DialogState *editProfile();
+    QString errorMessage() const;
 
     Q_INVOKABLE void open(const QString &id);
     Q_INVOKABLE void close();
+    Q_INVOKABLE void showError(const QString &message);
+    Q_INVOKABLE void dismissError();
 
 signals:
     void currentDialogChanged();
+    void errorMessageChanged();
 
 private:
     QString m_currentDialog;
     DialogState m_editProfile;
+    QString m_errorMessage;
     inline static DialogController *s_instance = nullptr;
 };

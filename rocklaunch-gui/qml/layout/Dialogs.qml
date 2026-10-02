@@ -28,6 +28,8 @@ Item {
 
     property int opacityAnimDuration: 150
 
+    readonly property bool modalOpen: DialogController.currentDialog !== "" || DialogController.errorMessage !== ""
+
 
     //  .-------------------------.
     //  | .---------------------. |
@@ -39,13 +41,13 @@ Item {
         anchors.fill: parent
         visible: opacity > 0
         color: "black"
-        opacity: DialogController.currentDialog !== "" ? 0.4 : 0
+        opacity: root.modalOpen ? 0.4 : 0
         Behavior on opacity { NumberAnimation { duration: root.opacityAnimDuration } }
 
         MouseArea {
             anchors.fill: parent
-            enabled: DialogController.currentDialog !== ""
-            hoverEnabled: DialogController.currentDialog !== ""
+            enabled: root.modalOpen
+            hoverEnabled: root.modalOpen
         }
     }
 
@@ -68,13 +70,43 @@ Item {
 
     //  .-------------------------.
     //  | .---------------------. |
+    //  | |        Error        | |
+    //  | `---------------------' |
+    //  `-------------------------'
+
+    // The error dialog is narrower than the editor, so without this the editor's
+    // edges keep the mouse. enabled alone leaves hover and cursor to items below.
+    MouseArea {
+        anchors.fill: parent
+        visible: DialogController.errorMessage !== ""
+        enabled: visible
+        hoverEnabled: visible
+    }
+
+    Loader {
+        id: errorDialog
+        anchors.centerIn: parent
+        opacity: DialogController.errorMessage !== "" ? 1 : 0
+        active: opacity > 0
+        source: "../dialogs/Error.qml"
+        Behavior on opacity { NumberAnimation { duration: root.opacityAnimDuration } }
+    }
+
+
+    //  .-------------------------.
+    //  | .---------------------. |
     //  | |   Close Any Dialog  | |
     //  | `---------------------' |
     //  `-------------------------'
 
     Shortcut {
-        enabled: DialogController.currentDialog !== ""
+        enabled: root.modalOpen
         sequence: "Escape"
-        onActivated: DialogController.close()
+        onActivated: {
+            if (DialogController.errorMessage !== "")
+                DialogController.dismissError()
+            else
+                DialogController.close()
+        }
     }
 }

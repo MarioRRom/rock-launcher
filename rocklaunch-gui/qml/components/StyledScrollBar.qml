@@ -18,37 +18,24 @@
 // Qt Imports
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Controls
 
 // Config
-import "../contents/launch"
-import "../contents/runners"
+import RockLaunch.Gui
 
-Item {
+ScrollBar {
     id: root
 
-    property string currentPage: "launch"
+    hoverEnabled: true
+    padding: 0
 
+    // Qt hides its stock thumb by fading it; size < 1.0 is the "content overflows" check.
+    visible: size < 1.0
 
-    //  .-------------------------.
-    //  | .---------------------. |
-    //  | | Launch Game Section | |
-    //  | `---------------------' |
-    //  `-------------------------'
-
-    Launch {
-        anchors.fill: parent
-        visible: root.currentPage === "launch"
-    }
-
-
-    //  .-------------------------.
-    //  | .---------------------. |
-    //  | | Runner List Section | |
-    //  | `---------------------' |
-    //  `-------------------------'
-
-    Runners {
-        anchors.fill: parent
-        visible: root.currentPage === "runners"
+    contentItem: Rectangle {
+        implicitWidth: 6
+        implicitHeight: 6
+        radius: width / 2
+        color: root.pressed || root.hovered ? Theme.overlay2 : Theme.overlay1
     }
 }

@@ -1,4 +1,4 @@
-find_package(Qt6 REQUIRED COMPONENTS Quick)
+find_package(Qt6 REQUIRED COMPONENTS Quick Concurrent)
 
 qt_standard_project_setup(REQUIRES 6.5)
 
@@ -20,8 +20,12 @@ qt_add_qml_module(rocklaunch-gui
         src/profile_model.cpp
         src/launch_controller.h
         src/launch_controller.cpp
+        src/runners/runner_jobs.h
+        src/runners/runner_jobs.cpp
         src/runners/runner_model.h
         src/runners/runner_model.cpp
+        src/utils/job_worker.h
+        src/utils/job_worker.cpp
         src/utils/qt_process_handle.h
         src/utils/qt_process_handle.cpp
         src/utils/theme.h
@@ -40,13 +44,18 @@ qt_add_qml_module(rocklaunch-gui
         qml/contents/launch/ProfilePicker.qml
         qml/contents/runners/Runners.qml
         qml/contents/runners/RunnerList.qml
+        qml/contents/runners/RunnerEmpty.qml
         qml/components/IconButton.qml
         qml/components/TextBadge.qml
         qml/components/IconTextButton.qml
         qml/components/ExpandableList.qml
         qml/components/GameProfileButton.qml
         qml/components/SvgIcon.qml
+        qml/components/StyledProgressBar.qml
+        qml/components/StyledScrollBar.qml
+        qml/components/StyledTooltip.qml
         qml/dialogs/EditProfile.qml
+        qml/dialogs/Error.qml
     RESOURCES
         qml/assets/LOGO.png
         qml/assets/icons/device-gamepad.svg
@@ -66,6 +75,8 @@ qt_add_qml_module(rocklaunch-gui
         qml/assets/icons/steam.svg
         qml/assets/icons/device-floppy.svg
         qml/assets/icons/x.svg
+        qml/assets/icons/circle-check.svg
+        qml/assets/icons/help-circle.svg
         qml/assets/LOGO/rock2014logo.png
         qml/assets/LOGO/rockpluslogo.png
 )
@@ -73,6 +84,7 @@ qt_add_qml_module(rocklaunch-gui
 target_link_libraries(rocklaunch-gui PRIVATE
     rocklaunch::core
     Qt6::Quick
+    Qt6::Concurrent
 )
 
 target_compile_features(rocklaunch-gui PRIVATE cxx_std_17)

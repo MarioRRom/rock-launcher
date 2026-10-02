@@ -52,6 +52,26 @@ DialogState *DialogController::editProfile()
     return &m_editProfile;
 }
 
+QString DialogController::errorMessage() const
+{
+    return m_errorMessage;
+}
+
+void DialogController::showError(const QString &message)
+{
+    m_errorMessage = message;
+    emit errorMessageChanged();
+}
+
+void DialogController::dismissError()
+{
+    if (m_errorMessage.isEmpty()) {
+        return;
+    }
+    m_errorMessage.clear();
+    emit errorMessageChanged();
+}
+
 void DialogController::open(const QString &id)
 {
     if (m_currentDialog == id) {
