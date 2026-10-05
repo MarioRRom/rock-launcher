@@ -35,16 +35,16 @@ qt_add_qml_module(rocklaunch-gui
     QML_FILES
         qml/Main.qml
     QML_FILES
-        qml/layout/Content.qml
+        qml/layout/PageHost.qml
         qml/layout/Dialogs.qml
         qml/layout/TopBar.qml
         qml/layout/SideBar.qml
-        qml/contents/launch/Launch.qml
-        qml/contents/launch/PlayButton.qml
-        qml/contents/launch/ProfilePicker.qml
-        qml/contents/runners/Runners.qml
-        qml/contents/runners/RunnerList.qml
-        qml/contents/runners/RunnerEmpty.qml
+        qml/pages/launch/Launch.qml
+        qml/pages/launch/PlayButton.qml
+        qml/pages/launch/ProfilePicker.qml
+        qml/pages/runners/Runners.qml
+        qml/pages/runners/RunnerList.qml
+        qml/pages/runners/RunnerEmpty.qml
         qml/components/IconButton.qml
         qml/components/TextBadge.qml
         qml/components/IconTextButton.qml
@@ -59,7 +59,7 @@ qt_add_qml_module(rocklaunch-gui
         qml/dialogs/EditProfile.qml
         qml/dialogs/Error.qml
     RESOURCES
-        qml/assets/LOGO.png
+        qml/assets/banner.png
         qml/assets/icons/device-gamepad.svg
         qml/assets/icons/player-play.svg
         qml/assets/icons/glass-full.svg

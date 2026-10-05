@@ -95,7 +95,7 @@ Window {
             //  | `---------------------' |
             //  `-------------------------'
 
-            Content {
+            PageHost {
                 Layout.fillHeight: true
                 Layout.fillWidth: true
                 currentPage: root.currentPage

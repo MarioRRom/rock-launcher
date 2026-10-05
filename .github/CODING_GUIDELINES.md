@@ -127,8 +127,8 @@ rocklaunch-gui/
 ├── src/
 └── qml/
     ├── Main.qml                Window root, layout composition
-    ├── layout/                 Structural chrome (SideBar, TopBar, Content)
-    ├── contents/               Page-level views (launch, runners, patches...)
+    ├── layout/                 Structural chrome (SideBar, TopBar, PageHost)
+    ├── pages/                  Page-level views (launch, runners, patches...)
     ├── components/             Reusable generic UI (buttons, icons, inputs)
     │   └── controls/           Styled controls, grouped by category
     │       ├── indicator/      Progress and scroll indicators

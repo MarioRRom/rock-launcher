@@ -43,7 +43,7 @@ Rectangle {
             Layout.preferredHeight: 88
             smooth: true
             mipmap: true
-            source: "../assets/LOGO.png"
+            source: "../assets/banner.png"
             fillMode: Image.PreserveAspectFit
         }
 
