@@ -9,6 +9,10 @@
 //--------------------------------------------------------------
 
 
+// A thin pill thumb that only shows when the content overflows, so a list that
+// fits never advertises a scrollbar it cannot use.
+
+
 //  .-------------------------.
 //  | .---------------------. |
 //  | |   Import Modules    | |
@@ -29,7 +33,6 @@ ScrollBar {
     hoverEnabled: true
     padding: 0
 
-    // Qt hides its stock thumb by fading it; size < 1.0 is the "content overflows" check.
     visible: size < 1.0
 
     contentItem: Rectangle {

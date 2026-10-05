@@ -21,7 +21,6 @@ import QtQuick
 import QtQuick.Layouts
 
 // Config
-import "../components"
 import RockLaunch.Gui
 
 Rectangle {
@@ -60,7 +59,7 @@ Rectangle {
             text: "Launch"
             icon: "device-gamepad"
             actived: root.currentPage === "launch"
-            onClicked: { root.currentPage = "launch"; root.pageChanged("launch") }
+            onClicked: root.pageChanged("launch")
         }
 
 
@@ -75,7 +74,7 @@ Rectangle {
             text: "Runners"
             icon: "glass-full"
             actived: root.currentPage === "runners"
-            onClicked: { root.currentPage = "runners"; root.pageChanged("runners") }
+            onClicked: root.pageChanged("runners")
         }
 
 
@@ -89,8 +88,9 @@ Rectangle {
             Layout.fillWidth: true
             text: "Patches"
             icon: "bandage"
+            enabled: false // TODO: enable when the page is ready
             actived: root.currentPage === "patches"
-            onClicked: { root.currentPage = "patches"; root.pageChanged("patches") }
+            onClicked: root.pageChanged("patches")
         }
 
         // Separator
@@ -108,8 +108,9 @@ Rectangle {
             size: 40
             text: "Settings"
             icon: "settings"
+            enabled: false // TODO: enable when the page is ready
             actived: root.currentPage === "settings"
-            onClicked: { root.currentPage = "settings"; root.pageChanged("settings") }
+            onClicked: root.pageChanged("settings")
         }
 
         IconTextButton {
@@ -117,8 +118,9 @@ Rectangle {
             size: 40
             text: "About"
             icon: "exclamation-circle"
+            enabled: false // TODO: enable when the page is ready
             actived: root.currentPage === "about"
-            onClicked: { root.currentPage = "about"; root.pageChanged("about") }
+            onClicked: root.pageChanged("about")
         }
     }
 }

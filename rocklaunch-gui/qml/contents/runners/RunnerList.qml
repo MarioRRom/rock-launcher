@@ -22,7 +22,6 @@ import QtQuick.Layouts
 import QtQuick.Controls
 
 // Config
-import "../../components"
 import RockLaunch.Gui
 
 // Runner list: one card per runner (icon, version, badges, actions).
@@ -34,6 +33,9 @@ ListView {
     clip: true
 
     readonly property int scrollGutter: 8
+
+    readonly property int statusFadeDuration: 250
+    readonly property int progressFadeDuration: 250
 
     model: RunnerModel.runners
     ScrollBar.vertical: StyledScrollBar {}
@@ -78,18 +80,16 @@ ListView {
                 name: "proton"
                 when: runnerCard.runnerSource === "proton-ge-custom"
                 PropertyChanges {
-                    target: runnerIcon
-                    icon: "glass-full"
-                    color: Theme.mauve
+                    runnerIcon.icon: "glass-full"
+                    runnerIcon.color: Theme.mauve
                 }
             },
             State {
                 name: "cachy"
                 when: runnerCard.runnerSource === "Proton-CachyOS"
                 PropertyChanges {
-                    target: runnerIcon
-                    icon: "cachyos"
-                    color: Theme.sky
+                    runnerIcon.icon: "cachyos"
+                    runnerIcon.color: Theme.sky
                 }
             }
         ]
@@ -174,7 +174,7 @@ ListView {
                 spacing: 8
                 opacity: runnerCard.jobActive && RunnerJobs.stage !== "" ? 1 : 0
                 visible: statusRow.opacity > 0
-                Behavior on opacity { NumberAnimation { duration: 250 } }
+                Behavior on opacity { NumberAnimation { duration: root.statusFadeDuration } }
 
                 // Status Text
                 Text {
@@ -192,7 +192,7 @@ ListView {
                     to: 100 // Core reports 0-100, not a fraction.
                     value: RunnerJobs.percent
                     opacity: RunnerJobs.determinate ? 1 : 0
-                    Behavior on opacity { NumberAnimation { duration: 250 } }
+                    Behavior on opacity { NumberAnimation { duration: root.progressFadeDuration } }
                 }
 
                 // percentage text
@@ -202,7 +202,7 @@ ListView {
                     text: Math.round(RunnerJobs.percent) + "%"
                     font.pixelSize: 14
                     color: Theme.subtext0
-                    Behavior on opacity { NumberAnimation { duration: 250 } }
+                    Behavior on opacity { NumberAnimation { duration: root.progressFadeDuration } }
                 }
             }
 

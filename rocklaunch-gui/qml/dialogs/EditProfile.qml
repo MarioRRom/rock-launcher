@@ -19,10 +19,8 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 
 // Config
-import "../components"
 import RockLaunch.Gui
 
 Rectangle {
@@ -35,6 +33,7 @@ Rectangle {
 
     readonly property int margin: 20
 
+    // The Loader tears the dialog down on close, so every open re-runs this init.
     Component.onCompleted: loadRunner()
 
     function loadRunner() {
@@ -129,28 +128,13 @@ Rectangle {
                     color: Theme.text
                 }
 
-                TextField {
+                StyledTextField {
                     id: nameEdit
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 38
-                    color: Theme.text
                     placeholderText: root.isNew ? ProfileModel.freeProfileId : root.profileId
-                    placeholderTextColor: Theme.subtext0
-                    font.pixelSize: 16
-                    selectByMouse: true
-                    leftPadding: 12
-                    rightPadding: 12
+                    borderColor: !root.nameValid ? Theme.red : nameEdit.activeFocus ? Theme.blue : "transparent"
 
-                    // First open: the Loader had just created this item. Later
-                    // opens reuse the live item, and Connections below refills.
                     Component.onCompleted: nameEdit.text = root.isNew ? "" : ProfileModel.profileName(root.profileId)
-
-                    background: Rectangle {
-                        color: Theme.surface0
-                        radius: 12
-                        border.width: 1
-                        border.color: !root.nameValid ? Theme.red : nameEdit.activeFocus ? Theme.blue : "transparent"
-                    }
                 }
             }
 
@@ -235,31 +219,26 @@ Rectangle {
                     color: Theme.text
                 }
 
-                TextField {
+                StyledTextField {
                     id: pathEdit
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 38
-                    color: Theme.text
                     placeholderText: "Game installation path"
-                    placeholderTextColor: Theme.subtext0
-                    font.pixelSize: 16
-                    selectByMouse: true
-                    leftPadding: 12
-                    rightPadding: 12 + pathFolderBtn.width + pathSteamBtn.width + 2
+                    borderColor: pathEdit.activeFocus ? Theme.yellow : "transparent"
 
-                    background: Rectangle {
-                        color: Theme.surface0
-                        radius: 12
-                        border.width: 1
-                        border.color: pathEdit.activeFocus ? Theme.yellow : "transparent"
+                    indicator: Rectangle {
+                        color: "transparent"
+                        height: 34
+                        width: pathSteamBtn.x + pathSteamBtn.width + rightMargin
+
+                        readonly property int rightMargin: 2
 
                         // Open the game folder
                         IconButton {
                             id: pathFolderBtn
-                            anchors.right: pathSteamBtn.left
+                            anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
                             icon: "folder"
-                            size: parent.height - 4
+                            size: parent.height
                             borderRadius: 10
                             iconMargin: 10
                             bgColor: "transparent"
@@ -271,13 +250,13 @@ Rectangle {
                         // Open the game on Steam
                         IconButton {
                             id: pathSteamBtn
-                            anchors.right: parent.right
-                            anchors.rightMargin: 2
+                            anchors.left: pathFolderBtn.right
+                            anchors.leftMargin: 6
                             anchors.verticalCenter: parent.verticalCenter
                             icon: "steam"
-                            size: parent.height - 4
-                            iconMargin: 10
+                            size: parent.height
                             borderRadius: 10
+                            iconMargin: 10
                             bgColor: "transparent"
                             onClicked: {
                                 // TODO: get the game from steam
@@ -346,24 +325,6 @@ Rectangle {
                         DialogController.editProfile.close()
                 }
             }
-        }
-    }
-
-
-    //  .-------------------------.
-    //  | .---------------------. |
-    //  | |      Connections    | |
-    //  | `---------------------' |
-    //  `-------------------------'
-
-    Connections {
-        target: DialogController.editProfile.payload
-        function onValueChanged(key, value) {
-            // open() clears the map before refilling it; skip that pass.
-            if (value === undefined)
-                return
-            nameEdit.text = root.isNew ? "" : ProfileModel.profileName(root.profileId)
-            root.loadRunner()
         }
     }
 }

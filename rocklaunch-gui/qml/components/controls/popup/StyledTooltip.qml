@@ -9,6 +9,10 @@
 //--------------------------------------------------------------
 
 
+// A ToolTip that prefixes its text with a separately colored label, for the
+// "Warning:" or "Tip:" lead that has to stand out from the message itself.
+
+
 //  .-------------------------.
 //  | .---------------------. |
 //  | |   Import Modules    | |
@@ -30,6 +34,9 @@ ToolTip {
     property string label: "" // e.g. "Warning:", "Tip:" or "Info:"
     property color labelColor: Theme.red
 
+    readonly property int enterDuration: 200
+    readonly property int exitDuration: 100
+
 
     //  .-------------------------.
     //  | .---------------------. |
@@ -39,10 +46,10 @@ ToolTip {
 
     // In-Out fade animations
     enter: Transition {
-        NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutQuad }
+        NumberAnimation { property: "opacity"; from: 0; to: 1; duration: root.enterDuration; easing.type: Easing.OutQuad }
     }
     exit: Transition {
-        NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 100; easing.type: Easing.InQuad }
+        NumberAnimation { property: "opacity"; from: 1; to: 0; duration: root.exitDuration; easing.type: Easing.InQuad }
     }
 
 

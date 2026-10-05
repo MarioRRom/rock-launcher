@@ -21,15 +21,12 @@ import QtQuick
 import QtQuick.Layouts
 
 // Config
-import "../components"
 import RockLaunch.Gui
 
 Rectangle {
     id: root
     color: Theme.surface0
-
-    property string currentGame: "rocksmith2014remastered"
-    signal gameChanged(string game)
+    clip: true
 
     RowLayout {
         anchors.fill: parent
@@ -47,16 +44,27 @@ Rectangle {
         //  `-------------------------'
 
         GameProfileButton {
-            actived: root.currentGame === "rocksmith2014remastered"
+            actived: GameProfileModel.gameId === "rocksmith2014remastered"
             icon: "../assets/LOGO/rock2014logo.png"
-            onClicked: { root.currentGame = "rocksmith2014remastered"; root.gameChanged("rocksmith2014remastered") }
+            onClicked: GameProfileModel.gameId = "rocksmith2014remastered"
         }
 
         GameProfileButton {
-            visible: false // THIS IS A PLACEHOLDER, rocksmith+ is supported coming soon
-            actived: root.currentGame === "rocksmithplus"
+            enabled: false // TODO: enable when the game is supported
+            actived: GameProfileModel.gameId === "rocksmithplus"
             icon: "../assets/LOGO/rockpluslogo.png"
-            onClicked: { root.currentGame = "rocksmithplus"; root.gameChanged("rocksmithplus") }
+            onClicked: GameProfileModel.gameId = "rocksmithplus"
+
+            HoverHandler { id: rockplusHover }
+
+            StyledTooltip {
+                visible: rockplusHover.hovered
+                delay: 200
+                label: "Info:"
+                labelColor: Theme.blue
+                implicitWidth: 300
+                text: "Rocksmith+ is available soon."
+            }
         }
 
         // Spacer

@@ -63,6 +63,7 @@ Rectangle {
 
     // State
     property bool actived: false
+    readonly property int expandDuration: 150
 
     signal footClicked()
 
@@ -75,7 +76,7 @@ Rectangle {
     clip: true
 
     Behavior on implicitHeight {
-        NumberAnimation { duration: 150; easing.type: Easing.InOutQuad }
+        NumberAnimation { duration: root.expandDuration; easing.type: Easing.InOutQuad }
     }
 
     // Brings an entry into view, e.g. the selected one.
@@ -134,7 +135,7 @@ Rectangle {
                 rotation: root.actived ? 270 : 90
 
                 Behavior on rotation {
-                    NumberAnimation { duration: 150 }
+                    NumberAnimation { duration: root.expandDuration }
                 }
             }
         }
@@ -171,6 +172,7 @@ Rectangle {
             anchors.margins: root.innerMargin
             spacing: 0
 
+
             //  .-------------------------.
             //  | .---------------------. |
             //  | |         List        | |
@@ -194,6 +196,7 @@ Rectangle {
                 color: root.separatorColor
                 visible: root.footButton
             }
+
 
             //  .-------------------------.
             //  | .---------------------. |

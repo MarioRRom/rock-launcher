@@ -1,5 +1,5 @@
 //--------------------------------------------------------------
-//  ____   ___   ____ _  ___        _   _   _ _   _  ____ _   _
+//  ____   ___   ____ _  ___        _   _   _ _   _  ____ _   _ 
 // |  _ \ / _ \ / ___| |/ / |      / \ | | | | \ | |/ ___| | | |
 // | |_) | | | | |   | ' /| |     / _ \| | | |  \| | |   | |_| |
 // |  _ <| |_| | |___| . \| |___ / ___ \ |_| | |\  | |___|  _  |
@@ -19,10 +19,8 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 
 // Config
-import "../../components"
 import RockLaunch.Gui
 
 
@@ -36,6 +34,8 @@ Rectangle {
     // Runners::Repos(); the label is display only.
     readonly property string geProtonSource: "proton-ge-custom"
     readonly property string cachyosSource: "Proton-CachyOS"
+
+    readonly property int emptyStateFadeDuration: 250
 
     Component.onCompleted: RunnerModel.currentSource = geProtonSource
 
@@ -79,32 +79,11 @@ Rectangle {
             Item { Layout.fillWidth: true }
 
             // Search bar
-            TextField {
-                id: searchBar
+            StyledSearchField {
                 Layout.preferredWidth: 300
                 Layout.preferredHeight: headerRow.Layout.preferredHeight
                 Layout.alignment: Qt.AlignVCenter
-                color: Theme.text
-                placeholderTextColor: Theme.subtext0
-                background: Rectangle {
-                    color: Theme.surface0
-                    radius: 12
-
-                    // Search icon
-                    SvgIcon {
-                        id: searchIcon
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.leftMargin: 12
-                        icon: "search"
-                        size: parent.height - 18
-                    }
-                }
-                font.pixelSize: 16
                 placeholderText: "Search for runners"
-                selectByMouse: true
-                leftPadding: 16 + searchIcon.width
-                rightPadding: 16
                 onTextChanged: RunnerModel.search = text
             }
 
@@ -152,14 +131,14 @@ Rectangle {
                 anchors.fill: parent
                 opacity: runnerList.count > 0 ? 1 : 0
                 visible: opacity > 0
-                Behavior on opacity { NumberAnimation { duration: 250 } }
+                Behavior on opacity { NumberAnimation { duration: root.emptyStateFadeDuration } }
             }
 
             RunnerEmpty {
                 anchors.fill: parent
                 opacity: runnerList.count > 0 ? 0 : 1
                 visible: opacity > 0
-                Behavior on opacity { NumberAnimation { duration: 250 } }
+                Behavior on opacity { NumberAnimation { duration: root.emptyStateFadeDuration } }
             }
         }
     }

@@ -21,7 +21,6 @@ import QtQuick
 import QtQuick.Layouts
 
 // Config
-import "layout"
 import RockLaunch.Gui
 
 Window {
@@ -33,7 +32,7 @@ Window {
     minimumHeight: 720
     title: "RockLauncher"
     color: Theme.base
-    
+
 
     //  .-------------------------.
     //  | .---------------------. |
@@ -43,9 +42,11 @@ Window {
 
     property int sidebarWidth: 240
     property int topbarHeight: 74
+    readonly property int showHideLayoutDuration: 250
 
     // Internal states
     property string currentPage: "launch"
+    readonly property bool topbarVisible: currentPage === "launch" || currentPage === "patches"
 
 
     // Horizontal Layout
@@ -66,7 +67,7 @@ Window {
             currentPage: root.currentPage
             onPageChanged: (page) => root.currentPage = page
         }
-        
+
         // Vertical Layout
         ColumnLayout {
             Layout.fillWidth: true
@@ -81,10 +82,10 @@ Window {
 
             TopBar {
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.topbarHeight
-                currentGame: GameProfileModel.gameId
-                onGameChanged: (game) => GameProfileModel.gameId = game
-                visible: root.currentPage === "launch"
+
+                visible: Layout.preferredHeight > 0
+                Layout.preferredHeight: root.topbarVisible ? root.topbarHeight : 0
+                Behavior on Layout.preferredHeight { NumberAnimation { duration: root.showHideLayoutDuration } }
             }
 
 

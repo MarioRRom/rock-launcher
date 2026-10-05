@@ -130,6 +130,10 @@ rocklaunch-gui/
     ├── layout/                 Structural chrome (SideBar, TopBar, Content)
     ├── contents/               Page-level views (launch, runners, patches...)
     ├── components/             Reusable generic UI (buttons, icons, inputs)
+    │   └── controls/           Styled controls, grouped by category
+    │       ├── indicator/      Progress and scroll indicators
+    │       ├── input/          Text and search fields
+    │       └── popup/          Tooltips and popups
     └── assets/                 Static resources (icons, logos)
 ```
 
@@ -140,7 +144,7 @@ Every `.qml` file starts with the project banner, followed by two blank lines:
 ```qml
 //--------------------------------------------------------------
 //  ____   ___   ____ _  ___        _   _   _ _   _  ____ _   _ 
-// |  _ \ / _ \ / ___| |/ / |      / \ | | | \ | |/ ___| | | |
+// |  _ \ / _ \ / ___| |/ / |      / \ | | | | \ | |/ ___| | | |
 // | |_) | | | | |   | ' /| |     / _ \| | | |  \| | |   | |_| |
 // |  _ <| |_| | |___| . \| |___ / ___ \ |_| | |\  | |___|  _  |
 // |_| \_\\___/ \____|_|\_\_____/_/   \_\___/|_| \_|\____|_| |_|
@@ -163,13 +167,17 @@ import QtQuick.Layouts
 import QtQuick.Effects
 
 // Config
-import "../components"
+import RockLaunch.Gui
 ```
 
 Typical grouping:
 
 1. Qt / Quick
-2. Internal project imports (relative paths)
+2. Internal project imports
+
+Internal types are exposed by the `RockLaunch.Gui` module and imported by name, never by
+relative path. A relative import ties a component to its position on disk, so moving or
+renaming a file silently breaks every file that pointed at it.
 
 Avoid unordered import blocks.
 

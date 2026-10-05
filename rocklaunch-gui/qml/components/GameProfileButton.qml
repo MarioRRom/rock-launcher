@@ -45,10 +45,14 @@ Rectangle {
     property color bgHoverColorActive: Qt.lighter(Theme.yellow, 1.1)
     property color bgPressedColorActive: Qt.lighter(Theme.yellow, 1.2)
 
+    readonly property color imageTint: root.actived ? imageColorActive : imageColor
+    readonly property bool imageTinted: imageTint !== "transparent"
+
     signal clicked()
 
     implicitWidth: size
     Layout.fillHeight: true
+    opacity: enabled ? 1 : 0.4
     radius: borderRadius
     color: {
         if (hover.pressed)
@@ -70,18 +74,16 @@ Rectangle {
         mipmap: true
         source: root.icon
         fillMode: Image.PreserveAspectFit
+        visible: !root.imageTinted
     }
 
     // Colorized effect
     MultiEffect {
         anchors.fill: baseImage
         source: baseImage
-        visible: {
-            var c = root.actived ? root.imageColorActive : root.imageColor
-            return c !== "transparent"
-        }
+        visible: root.imageTinted
         colorization: 1.0
-        colorizationColor: root.actived ? root.imageColorActive : root.imageColor
+        colorizationColor: root.imageTint
     }
 
     MouseArea {

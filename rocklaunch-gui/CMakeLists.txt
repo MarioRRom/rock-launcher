@@ -51,9 +51,11 @@ qt_add_qml_module(rocklaunch-gui
         qml/components/ExpandableList.qml
         qml/components/GameProfileButton.qml
         qml/components/SvgIcon.qml
-        qml/components/StyledProgressBar.qml
-        qml/components/StyledScrollBar.qml
-        qml/components/StyledTooltip.qml
+        qml/components/controls/indicator/StyledProgressBar.qml
+        qml/components/controls/indicator/StyledScrollBar.qml
+        qml/components/controls/input/StyledSearchField.qml
+        qml/components/controls/input/StyledTextField.qml
+        qml/components/controls/popup/StyledTooltip.qml
         qml/dialogs/EditProfile.qml
         qml/dialogs/Error.qml
     RESOURCES

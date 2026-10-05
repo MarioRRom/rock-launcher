@@ -21,7 +21,6 @@ import QtQuick
 import QtQuick.Layouts
 
 // Config
-import "../components"
 import RockLaunch.Gui
 
 Rectangle {

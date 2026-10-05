@@ -9,6 +9,10 @@
 //--------------------------------------------------------------
 
 
+// A rounded ProgressBar filled with a Catppuccin gradient rather than a flat
+// color, plus a sweeping bar for the indeterminate state.
+
+
 //  .-------------------------.
 //  | .---------------------. |
 //  | |   Import Modules    | |
@@ -30,6 +34,10 @@ ProgressBar {
     property color bgColor: Theme.surface1
     property color accentColor: Theme.green
     property color gradientColor: Theme.teal
+
+    readonly property int colorShiftDuration: 200
+    readonly property int fillDuration: 350
+    readonly property int sweepDuration: 1200
 
     implicitHeight: 12
     padding: 0
@@ -74,18 +82,18 @@ ProgressBar {
                 GradientStop {
                     position: 0.0
                     color: root.accentColor
-                    Behavior on color { ColorAnimation { duration: 200 } }
+                    Behavior on color { ColorAnimation { duration: root.colorShiftDuration } }
                 }
                 GradientStop {
                     position: 1.0
                     color: root.gradientColor
-                    Behavior on color { ColorAnimation { duration: 200 } }
+                    Behavior on color { ColorAnimation { duration: root.colorShiftDuration } }
                 }
             }
 
             Behavior on width {
                 NumberAnimation {
-                    duration: 350
+                    duration: root.fillDuration
                     easing.type: Easing.OutQuint
                 }
             }
@@ -98,7 +106,7 @@ ProgressBar {
             loops: Animation.Infinite
             from: -Math.max(bar.height, bar.parent.width * 0.3)
             to: bar.parent.width
-            duration: 1200
+            duration: root.sweepDuration
             easing.type: Easing.InOutQuad
         }
     }

@@ -21,7 +21,6 @@ import QtQuick
 import QtQuick.Layouts
 
 // Config
-import "../../components"
 import RockLaunch.Gui
 
 Rectangle {
@@ -41,27 +40,24 @@ Rectangle {
             name: "preparing"
             when: LaunchController.launchState === LaunchState.PreparingPrefix
             PropertyChanges {
-                target: root
-                label: "PREPARING"
-                accentColor: Theme.yellow
+                root.label: "PREPARING"
+                root.accentColor: Theme.yellow
             }
         },
         State {
             name: "starting"
             when: LaunchController.launchState === LaunchState.Starting
             PropertyChanges {
-                target: root
-                label: "LAUNCHING"
-                accentColor: Theme.yellow
+                root.label: "LAUNCHING"
+                root.accentColor: Theme.yellow
             }
         },
         State {
             name: "running"
             when: LaunchController.launchState === LaunchState.Running
             PropertyChanges {
-                target: root
-                label: "STOP"
-                accentColor: Theme.red
+                root.label: "STOP"
+                root.accentColor: Theme.red
             }
         }
     ]

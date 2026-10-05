@@ -51,6 +51,7 @@ Rectangle {
 
     implicitWidth: row.implicitWidth + 24
     implicitHeight: root.size
+    opacity: enabled ? 1 : 0.4
     radius: borderRadius
     color: {
         if (hover.pressed)

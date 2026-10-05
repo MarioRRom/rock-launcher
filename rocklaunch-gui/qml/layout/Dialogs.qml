@@ -26,7 +26,7 @@ Item {
     id: root
     anchors.fill: parent
 
-    property int opacityAnimDuration: 150
+    property int dialogFadeDuration: 150
 
     readonly property bool modalOpen: DialogController.currentDialog !== "" || DialogController.errorMessage !== ""
 
@@ -42,7 +42,7 @@ Item {
         visible: opacity > 0
         color: "black"
         opacity: root.modalOpen ? 0.4 : 0
-        Behavior on opacity { NumberAnimation { duration: root.opacityAnimDuration } }
+        Behavior on opacity { NumberAnimation { duration: root.dialogFadeDuration } }
 
         MouseArea {
             anchors.fill: parent
@@ -63,8 +63,8 @@ Item {
         anchors.centerIn: parent
         opacity: DialogController.currentDialog === "editProfile" ? 1 : 0
         active: opacity > 0
-        source: "../dialogs/EditProfile.qml"
-        Behavior on opacity { NumberAnimation { duration: root.opacityAnimDuration } }
+        sourceComponent: EditProfile { }
+        Behavior on opacity { NumberAnimation { duration: root.dialogFadeDuration } }
     }
 
 
@@ -88,8 +88,8 @@ Item {
         anchors.centerIn: parent
         opacity: DialogController.errorMessage !== "" ? 1 : 0
         active: opacity > 0
-        source: "../dialogs/Error.qml"
-        Behavior on opacity { NumberAnimation { duration: root.opacityAnimDuration } }
+        sourceComponent: Error { }
+        Behavior on opacity { NumberAnimation { duration: root.dialogFadeDuration } }
     }
 
 

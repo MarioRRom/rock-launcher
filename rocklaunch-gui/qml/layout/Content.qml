@@ -20,13 +20,13 @@ pragma ComponentBehavior: Bound
 import QtQuick
 
 // Config
-import "../contents/launch"
-import "../contents/runners"
+import RockLaunch.Gui
 
 Item {
     id: root
 
     property string currentPage: "launch"
+    property int pageChangeDuration: 250
 
 
     //  .-------------------------.
@@ -36,8 +36,10 @@ Item {
     //  `-------------------------'
 
     Launch {
-        anchors.fill: parent
-        visible: root.currentPage === "launch"
+        z: root.currentPage === "launch" ? 1 : 0
+        opacity: root.currentPage === "launch" ? 1 : 0
+        visible: opacity > 0
+        Behavior on opacity { NumberAnimation { duration: root.pageChangeDuration } }
     }
 
 
@@ -48,7 +50,9 @@ Item {
     //  `-------------------------'
 
     Runners {
-        anchors.fill: parent
-        visible: root.currentPage === "runners"
+        z: root.currentPage === "runners" ? 1 : 0
+        opacity: root.currentPage === "runners" ? 1 : 0
+        visible: opacity > 0
+        Behavior on opacity { NumberAnimation { duration: root.pageChangeDuration } }
     }
 }
