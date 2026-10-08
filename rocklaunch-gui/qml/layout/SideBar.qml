@@ -27,25 +27,31 @@ Rectangle {
     id: root
     color: Theme.mantle
 
+    // topbar height for the banner
+    property int topbarHeight: 74
+
     // Internal Settings
     property string currentPage: "launch"
     signal pageChanged(string page)
 
+    // Launcher banner
+    Image {
+        id: banner
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: root.topbarHeight
+        source: "../assets/banner.png"
+        fillMode: Image.PreserveAspectFit
+    }
+
     ColumnLayout {
-        anchors.fill: parent
+        anchors.top: banner.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
         anchors.margins: 9
         spacing: 12
-
-
-        // Launcher logo
-        Image {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 88
-            smooth: true
-            mipmap: true
-            source: "../assets/banner.png"
-            fillMode: Image.PreserveAspectFit
-        }
 
 
         //  .-------------------------.

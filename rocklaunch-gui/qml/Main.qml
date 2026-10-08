@@ -64,6 +64,7 @@ Window {
         SideBar {
             Layout.fillHeight: true
             Layout.preferredWidth: root.sidebarWidth
+            topbarHeight: root.topbarHeight
             currentPage: root.currentPage
             onPageChanged: (page) => root.currentPage = page
         }
