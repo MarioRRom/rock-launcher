@@ -88,7 +88,6 @@ Rectangle {
             Layout.fillWidth: true
             text: "Patches"
             icon: "bandage"
-            enabled: false // TODO: enable when the page is ready
             actived: root.currentPage === "patches"
             onClicked: root.pageChanged("patches")
         }

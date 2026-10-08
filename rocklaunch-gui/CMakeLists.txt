@@ -45,6 +45,9 @@ qt_add_qml_module(rocklaunch-gui
         qml/pages/runners/Runners.qml
         qml/pages/runners/RunnerList.qml
         qml/pages/runners/RunnerEmpty.qml
+        qml/pages/patches/Patches.qml
+        qml/pages/patches/PatchList.qml
+        qml/pages/patches/PatchEmpty.qml
         qml/components/IconButton.qml
         qml/components/TextBadge.qml
         qml/components/IconTextButton.qml
@@ -79,6 +82,8 @@ qt_add_qml_module(rocklaunch-gui
         qml/assets/icons/x.svg
         qml/assets/icons/circle-check.svg
         qml/assets/icons/help-circle.svg
+        qml/assets/icons/microphone.svg
+        qml/assets/icons/puzzle.svg
         qml/assets/LOGO/rock2014logo.png
         qml/assets/LOGO/rockpluslogo.png
 )

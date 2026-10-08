@@ -33,6 +33,7 @@ Rectangle {
     property int size: 48
     property int textSize: root.size / 3
     property int borderRadius: 8
+    property bool centerContent: false
 
     // Normal colors
     property color bgColor: "transparent"
@@ -69,6 +70,11 @@ Rectangle {
         anchors.leftMargin: 12
         anchors.rightMargin: 12
         spacing: 8
+
+        Rectangle {
+            visible: root.centerContent
+            Layout.fillWidth: true
+        }
 
         SvgIcon {
             visible: root.icon !== ""

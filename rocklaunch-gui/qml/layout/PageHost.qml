@@ -55,4 +55,18 @@ Item {
         visible: opacity > 0
         Behavior on opacity { NumberAnimation { duration: root.pageChangeDuration } }
     }
+
+
+    //  .-------------------------.
+    //  | .---------------------. |
+    //  | | Patch List Section  | |
+    //  | `---------------------' |
+    //  `-------------------------'
+
+    Patches {
+        z: root.currentPage === "patches" ? 1 : 0
+        opacity: root.currentPage === "patches" ? 1 : 0
+        visible: opacity > 0
+        Behavior on opacity { NumberAnimation { duration: root.pageChangeDuration } }
+    }
 }
